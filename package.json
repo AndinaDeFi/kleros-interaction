@@ -36,7 +36,6 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "kathari precommit",
       "commit-msg": "kathari commitmsg"
     }
   },
@@ -50,7 +49,8 @@
     "openzeppelin-test-helpers": "^0.4.3",
     "pify": "^4.0.1",
     "standard-version": "^4.4.0",
-    "truffle": "4.1.16"
+    "truffle": "4.1.16",
+    "truffle-hdwallet-provider": "^1.0.17"
   },
   "dependencies": {
     "@kleros/kleros": "^0.1.2",
