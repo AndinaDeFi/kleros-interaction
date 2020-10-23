@@ -246,6 +246,7 @@ class Interact extends React.Component {
       timeoutPayment,
       feeTimeout,
       lastInteraction,
+      activeAddress,
     } = this.state;
     return (
       <Container className="container-fluid d-flex h-100 flex-column">
@@ -264,7 +265,12 @@ class Interact extends React.Component {
             </Button>
             <ListGroup variant="flush">
               <ListGroup.Item>Value (weis): {value}</ListGroup.Item>
-              <ListGroup.Item>Payer: {payer}</ListGroup.Item>
+              <ListGroup.Item>
+                Payer: {payer}
+                <Badge lassName="m-1" pill variant="success">
+                  {activeAddress == payer && "You!"}
+                </Badge>
+              </ListGroup.Item>
               <ListGroup.Item>Payee: {payee}</ListGroup.Item>
               <ListGroup.Item>Arbitrator: {arbitrator}</ListGroup.Item>
             </ListGroup>

@@ -97,8 +97,8 @@ class App extends React.Component {
     );
   };
 
-  status = (contractAddress, transactionID) =>
-    MultipleArbitrableTransactionWithFee.status(contractAddress, transactionID);
+  // status = (contractAddress, transactionID) =>
+  //   MultipleArbitrableTransactionWithFee.status(contractAddress, transactionID);
 
   // releaseFunds = async (contractAddress) => {
   //   const { activeAddress } = this.state;
@@ -226,6 +226,7 @@ class App extends React.Component {
       multipleArbitrableAddress,
       lastTransactionID,
       defaultPayee,
+      activeAddress,
     } = this.state;
     return (
       <Container>
@@ -273,25 +274,26 @@ class App extends React.Component {
               <h3>{`Last interaction ID ${lastTransactionID}`}</h3>
             </Row>
             <Interact
-              arbitratorCallback={this.arbitrator}
-              arbitrationCostCallback={this.arbitrationCost}
+              // arbitratorCallback={this.arbitrator}
+              // arbitrationCostCallback={this.arbitrationCost}
+              activeAddress={activeAddress}
               escrowAddress={multipleArbitrableAddress}
               transactionID={lastTransactionID}
               transactionIDCallback={this.transactionIDCallback}
-              reclaimFundsCallback={
-                this.reclaimFunds // loadCallback={this.load}
-              }
-              releaseFundsCallback={this.releaseFunds}
-              depositArbitrationFeeForPayeeCallback={
-                this.depositArbitrationFeeForPayee
-              }
-              remainingTimeToReclaimCallback={this.remainingTimeToReclaim}
-              remainingTimeToDepositArbitrationFeeCallback={
-                this.remainingTimeToDepositArbitrationFee
-              }
-              statusCallback={this.status}
-              valueCallback={this.value}
-              submitEvidenceCallback={this.submitEvidence}
+              // reclaimFundsCallback={
+              //   this.reclaimFunds // loadCallback={this.load}
+              // }
+              // releaseFundsCallback={this.releaseFunds}
+              // depositArbitrationFeeForPayeeCallback={
+              //   this.depositArbitrationFeeForPayee
+              // }
+              // remainingTimeToReclaimCallback={this.remainingTimeToReclaim}
+              // remainingTimeToDepositArbitrationFeeCallback={
+              //   this.remainingTimeToDepositArbitrationFee
+              // }
+              // statusCallback={this.status}
+              // valueCallback={this.value}
+              // submitEvidenceCallback={this.submitEvidence}
             />{" "}
           </Col>{" "}
         </Row>{" "}
