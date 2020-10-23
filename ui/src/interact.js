@@ -13,9 +13,12 @@ import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbit
 class Interact extends React.Component {
   constructor(props) {
     super(props);
+    this.NUMBER_OF_STATUS = 5;
     this.state = {
       escrowAddress: this.props.escrowAddress,
       transactionID: this.props.transactionID,
+      candidateTransactionID: "",
+      activeAddress: this.props.activeAddress,
       remainingTimeToReclaim: "Unassigned",
       remainingTimeToDepositArbitrationFee: "Unassigned",
       status: "Unassigned",
@@ -31,6 +34,10 @@ class Interact extends React.Component {
 
   async componentDidUpdate(prevProps) {
     let changed = false;
+    if (this.props.activeAddress !== prevProps.activeAddress) {
+      this.setState({ activeAddress: this.props.activeAddress });
+      changed = true;
+    }
     if (this.props.escrowAddress !== prevProps.escrowAddress) {
       this.setState({ escrowAddress: this.props.escrowAddress });
       changed = true;
@@ -234,6 +241,27 @@ class Interact extends React.Component {
     });
   };
 
+  handleChange = (e) => {
+    this.setState({ candidateTransactionID: e.target.value });
+  };
+
+  handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await MultipleArbitrableTransactionWithFee.status(
+        this.state.escrowAddress,
+        this.state.candidateTransactionID
+      );
+      this.setState({
+        transactionID: this.state.candidateTransactionID,
+      });
+    } catch (e) {
+      console.error(e);
+      this.setState({ transactionID: "Not found" });
+    }
+    this.updateBadges();
+  };
+
   render() {
     const {
       fileInput,
@@ -247,18 +275,33 @@ class Interact extends React.Component {
       feeTimeout,
       lastInteraction,
       activeAddress,
+      candidateTransactionID,
     } = this.state;
     return (
       <Container className="container-fluid d-flex h-100 flex-column">
         <Card className="h-100 my-4 text-center" style={{ width: "auto" }}>
           <Card.Body>
             <Card.Title>
-              {`Interact with Transaction ${transactionID}`}
+              {transactionID === null
+                ? `Input Transaction ID to start interacting`
+                : `Interact with Transaction ${transactionID}`}
             </Card.Title>
+            <Form.Group controlId="transaction-id">
+              <Form.Control
+                className="text-center"
+                as="input"
+                rows="1"
+                value={candidateTransactionID}
+                onChange={this.handleChange}
+              />
+            </Form.Group>
+            <Button type="submit" variant="primary" onClick={this.handleSubmit}>
+              Set transaction ID
+            </Button>{" "}
             <Button
               className="mr-2"
-              variant="primary"
               type="button"
+              variant="outline-primary"
               onClick={this.updateBadges}
             >
               Update badges
@@ -267,14 +310,18 @@ class Interact extends React.Component {
               <ListGroup.Item>Value (weis): {value}</ListGroup.Item>
               <ListGroup.Item>
                 Payer: {payer}
-                <Badge lassName="m-1" pill variant="success">
-                  {activeAddress == payer && "You!"}
+                <Badge className="m-1" pill variant="success">
+                  {activeAddress == payer.toLowerCase() && "You!"}
                 </Badge>
               </ListGroup.Item>
-              <ListGroup.Item>Payee: {payee}</ListGroup.Item>
+              <ListGroup.Item>
+                Payee: {payee}
+                <Badge className="m-1" pill variant="success">
+                  {activeAddress == payee.toLowerCase() && "You!"}
+                </Badge>
+              </ListGroup.Item>
               <ListGroup.Item>Arbitrator: {arbitrator}</ListGroup.Item>
             </ListGroup>
-
             <Card.Subtitle className="mt-3 mb-1 text-muted">
               Smart Contract State
             </Card.Subtitle>

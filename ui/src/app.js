@@ -270,9 +270,6 @@ class App extends React.Component {
             />{" "}
           </Col>{" "}
           <Col>
-            <Row style={{ justifyContent: "center" }}>
-              <h3>{`Last interaction ID ${lastTransactionID}`}</h3>
-            </Row>
             <Interact
               // arbitratorCallback={this.arbitrator}
               // arbitrationCostCallback={this.arbitrationCost}

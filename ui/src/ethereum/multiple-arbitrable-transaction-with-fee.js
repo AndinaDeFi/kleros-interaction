@@ -99,7 +99,7 @@ export const lastInteraction = async (instanceAddress, transactionID) => {
   return lastInteraction;
 };
 
-// Useless
+// Old
 
 export const reclaimFunds = (senderAddress, instanceAddress, value) =>
   contractInstance(instanceAddress)
