@@ -35,13 +35,15 @@ class App extends React.Component {
       feeRecipientBasisPoint: 500,
       timeoutPayment: 100,
       arbitrationFee: 20,
-      lastTransactionID: 9999,
+      lastTransactionID: null,
     };
     this.ipfs = new Ipfs({
       host: "ipfs.kleros.io",
       port: 5001,
       protocol: "https",
     });
+
+    window.MultArbContract = MultipleContract;
   }
 
   newTransaction = async (amount, payee, title, description) => {
@@ -74,11 +76,13 @@ class App extends React.Component {
         ipfsHashMetaEvidenceObj[1]["hash"] +
         ipfsHashMetaEvidenceObj[0]["path"]
     );
-    console.log(`Transaction created: ${result.transactionHash}`);
     this.setState({
       lastTransactionID:
         result.events.MetaEvidence.returnValues._metaEvidenceID,
     });
+    console.log(
+      `Transaction created: ${result.transactionHash} and state updated`
+    );
   };
 
   load = (contractAddress) =>
@@ -93,68 +97,69 @@ class App extends React.Component {
     );
   };
 
-  releaseFunds = async (contractAddress) => {
-    const { activeAddress } = this.state;
+  status = (contractAddress, transactionID) =>
+    MultipleArbitrableTransactionWithFee.status(contractAddress, transactionID);
 
-    await SimpleEscrowWithERC1497.releaseFunds(activeAddress, contractAddress);
-  };
+  // releaseFunds = async (contractAddress) => {
+  //   const { activeAddress } = this.state;
 
-  depositArbitrationFeeForPayee = (contractAddress, value) => {
-    const { activeAddress } = this.state;
+  //   await SimpleEscrowWithERC1497.releaseFunds(activeAddress, contractAddress);
+  // };
 
-    SimpleEscrowWithERC1497.depositArbitrationFeeForPayee(
-      activeAddress,
-      contractAddress,
-      value
-    );
-  };
+  // depositArbitrationFeeForPayee = (contractAddress, value) => {
+  //   const { activeAddress } = this.state;
 
-  reclamationPeriod = (contractAddress) =>
-    SimpleEscrowWithERC1497.reclamationPeriod(contractAddress);
+  //   SimpleEscrowWithERC1497.depositArbitrationFeeForPayee(
+  //     activeAddress,
+  //     contractAddress,
+  //     value
+  //   );
+  // };
 
-  arbitrationFeeDepositPeriod = (contractAddress) =>
-    SimpleEscrowWithERC1497.arbitrationFeeDepositPeriod(contractAddress);
+  // reclamationPeriod = (contractAddress) =>
+  //   SimpleEscrowWithERC1497.reclamationPeriod(contractAddress);
 
-  remainingTimeToReclaim = (contractAddress) =>
-    SimpleEscrowWithERC1497.remainingTimeToReclaim(contractAddress);
+  // arbitrationFeeDepositPeriod = (contractAddress) =>
+  //   SimpleEscrowWithERC1497.arbitrationFeeDepositPeriod(contractAddress);
 
-  remainingTimeToDepositArbitrationFee = (contractAddress) =>
-    SimpleEscrowWithERC1497.remainingTimeToDepositArbitrationFee(
-      contractAddress
-    );
+  // remainingTimeToReclaim = (contractAddress) =>
+  //   SimpleEscrowWithERC1497.remainingTimeToReclaim(contractAddress);
 
-  arbitrationCost = (arbitratorAddress, extraData) =>
-    Arbitrator.arbitrationCost(arbitratorAddress, extraData);
+  // remainingTimeToDepositArbitrationFee = (contractAddress) =>
+  //   SimpleEscrowWithERC1497.remainingTimeToDepositArbitrationFee(
+  //     contractAddress
+  //   );
 
-  arbitrator = (contractAddress) =>
-    SimpleEscrowWithERC1497.arbitrator(contractAddress);
+  // arbitrationCost = (arbitratorAddress, extraData) =>
+  //   Arbitrator.arbitrationCost(arbitratorAddress, extraData);
 
-  status = (contractAddress) => SimpleEscrowWithERC1497.status(contractAddress);
+  // arbitrator = (contractAddress) =>
+  //   SimpleEscrowWithERC1497.arbitrator(contractAddress);
 
-  value = (contractAddress) => SimpleEscrowWithERC1497.value(contractAddress);
+  // value = (contractAddress) => SimpleEscrowWithERC1497.value(contractAddress);
 
-  submitEvidence = async (contractAddress, evidenceBuffer) => {
-    const { activeAddress } = this.state;
+  // submitEvidence = async (contractAddress, evidenceBuffer) => {
+  //   const { activeAddress } = this.state;
 
-    const result = await ipfsPublish("name", evidenceBuffer);
+  //   const result = await ipfsPublish("name", evidenceBuffer);
 
-    let evidence = generateEvidence(
-      "/ipfs/" + result[0]["hash"],
-      "name",
-      "description"
-    );
-    const enc = new TextEncoder();
-    const ipfsHashEvidenceObj = await ipfsPublish(
-      "evidence.json",
-      enc.encode(JSON.stringify(evidence))
-    );
+  //   let evidence = generateEvidence(
+  //     "/ipfs/" + result[0]["hash"],
+  //     "name",
+  //     "description"
+  //   );
+  //   const enc = new TextEncoder();
+  //   const ipfsHashEvidenceObj = await ipfsPublish(
+  //     "evidence.json",
+  //     enc.encode(JSON.stringify(evidence))
+  //   );
 
-    SimpleEscrowWithERC1497.submitEvidence(
-      contractAddress,
-      activeAddress,
-      "/ipfs/" + ipfsHashEvidenceObj[0]["hash"]
-    );
-  };
+  //   SimpleEscrowWithERC1497.submitEvidence(
+  //     contractAddress,
+  //     activeAddress,
+  //     "/ipfs/" + ipfsHashEvidenceObj[0]["hash"]
+  //   );
+  // };
 
   onMultArbAddressChange = async (e) => {
     const targetMultArbAddress = e.target.value.trim();
@@ -218,7 +223,6 @@ class App extends React.Component {
 
   render() {
     const {
-      lastDeployedAddress,
       multipleArbitrableAddress,
       lastTransactionID,
       defaultPayee,
@@ -271,9 +275,12 @@ class App extends React.Component {
             <Interact
               arbitratorCallback={this.arbitrator}
               arbitrationCostCallback={this.arbitrationCost}
-              escrowAddress={lastDeployedAddress}
-              loadCallback={this.load}
-              reclaimFundsCallback={this.reclaimFunds}
+              escrowAddress={multipleArbitrableAddress}
+              transactionID={lastTransactionID}
+              transactionIDCallback={this.transactionIDCallback}
+              reclaimFundsCallback={
+                this.reclaimFunds // loadCallback={this.load}
+              }
               releaseFundsCallback={this.releaseFunds}
               depositArbitrationFeeForPayeeCallback={
                 this.depositArbitrationFeeForPayee

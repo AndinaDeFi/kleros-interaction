@@ -37,6 +37,68 @@ export const createTransaction = (
     .methods.createTransaction(timeoutPayment, receiverAddress, metaevidence)
     .send({ from: senderAddress, value: amount });
 
+export const status = async (instanceAddress, transactionID) => {
+  const res = await contractInstance(instanceAddress)
+    .methods.transactions(transactionID)
+    .call();
+  const status = res.status;
+  return status;
+};
+
+export const arbitrator = async (instanceAddress, transactionID) => {
+  const arbitrator = await contractInstance(instanceAddress)
+    .methods.arbitrator()
+    .call();
+  return arbitrator;
+};
+
+export const feeTimeout = async (instanceAddress, transactionID) => {
+  const feeTimeout = await contractInstance(instanceAddress)
+    .methods.feeTimeout()
+    .call();
+  return feeTimeout;
+};
+
+export const value = async (instanceAddress, transactionID) => {
+  const res = await contractInstance(instanceAddress)
+    .methods.transactions(transactionID)
+    .call();
+  const value = res.amount;
+  return value;
+};
+
+export const payee = async (instanceAddress, transactionID) => {
+  const res = await contractInstance(instanceAddress)
+    .methods.transactions(transactionID)
+    .call();
+  const payee = res.receiver;
+  return payee;
+};
+
+export const payer = async (instanceAddress, transactionID) => {
+  const res = await contractInstance(instanceAddress)
+    .methods.transactions(transactionID)
+    .call();
+  const payer = res.sender;
+  return payer;
+};
+
+export const timeoutPayment = async (instanceAddress, transactionID) => {
+  const res = await contractInstance(instanceAddress)
+    .methods.transactions(transactionID)
+    .call();
+  const timeoutPayment = res.timeoutPayment;
+  return timeoutPayment;
+};
+
+export const lastInteraction = async (instanceAddress, transactionID) => {
+  const res = await contractInstance(instanceAddress)
+    .methods.transactions(transactionID)
+    .call();
+  const lastInteraction = res.lastInteraction;
+  return lastInteraction;
+};
+
 // Useless
 
 export const reclaimFunds = (senderAddress, instanceAddress, value) =>
@@ -76,15 +138,6 @@ export const remainingTimeToDepositArbitrationFee = (instanceAddress) =>
   contractInstance(instanceAddress)
     .methods.remainingTimeToDepositArbitrationFee()
     .call();
-
-export const arbitrator = (instanceAddress) =>
-  contractInstance(instanceAddress).methods.arbitrator().call();
-
-export const status = (instanceAddress) =>
-  contractInstance(instanceAddress).methods.status().call();
-
-export const value = (instanceAddress) =>
-  contractInstance(instanceAddress).methods.value().call();
 
 export const submitEvidence = (instanceAddress, senderAddress, evidence) =>
   contractInstance(instanceAddress)

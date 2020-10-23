@@ -36,6 +36,7 @@ class NewTransaction extends React.Component {
     const { amount, payee, title, description } = this.state;
     await this.props.newTransactionCallback(amount, payee, title, description);
   };
+
   render() {
     const { amount, payee, title, description } = this.state;
 

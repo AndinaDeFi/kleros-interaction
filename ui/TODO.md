@@ -1,3 +1,5 @@
 # Defiant-Kleros Transaction Escrow UI
 
-- Leer el estado de la transacción en función del ID.
+- Reconocer si una de las address es la propia.
+- Cargar a mano el ID de transacción.
+- Interactuar con el contrato.
