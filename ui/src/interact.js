@@ -311,13 +311,13 @@ class Interact extends React.Component {
               <ListGroup.Item>
                 Payer: {payer}
                 <Badge className="m-1" pill variant="success">
-                  {activeAddress == payer.toLowerCase() && "You!"}
+                  {activeAddress === payer.toLowerCase() && "You!"}
                 </Badge>
               </ListGroup.Item>
               <ListGroup.Item>
                 Payee: {payee}
                 <Badge className="m-1" pill variant="success">
-                  {activeAddress == payee.toLowerCase() && "You!"}
+                  {activeAddress === payee.toLowerCase() && "You!"}
                 </Badge>
               </ListGroup.Item>
               <ListGroup.Item>Arbitrator: {arbitrator}</ListGroup.Item>
