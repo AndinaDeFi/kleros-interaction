@@ -1,6 +1,14 @@
 import MultipleArbitrableTransactionWithFee from "./MultipleArbitrableTransactionWithFee.json";
 import web3 from "./web3";
 
+export const STATUS = {
+  0: "NoDispute",
+  1: "WaitingSender",
+  2: "WaitingReceiver",
+  3: "DisputeCreated",
+  4: "Resolved",
+};
+
 export const contractInstance = (address) =>
   new web3.eth.Contract(MultipleArbitrableTransactionWithFee.abi, address);
 
@@ -99,17 +107,56 @@ export const lastInteraction = async (instanceAddress, transactionID) => {
   return lastInteraction;
 };
 
+export const pay = (amount, transactionID, senderAddress, instanceAddress) =>
+  contractInstance(instanceAddress)
+    .methods.pay(transactionID, amount)
+    .send({ from: senderAddress });
+
+export const reimburse = (
+  amount,
+  transactionID,
+  senderAddress,
+  instanceAddress
+) =>
+  contractInstance(instanceAddress)
+    .methods.reimburse(transactionID, amount)
+    .send({ from: senderAddress });
+
+export const executeTransaction = (
+  transactionID,
+  senderAddress,
+  instanceAddress
+) =>
+  contractInstance(instanceAddress)
+    .methods.executeTransaction(transactionID)
+    .send({ from: senderAddress });
+
+export const payArbitrationFeeBySender = (
+  value,
+  transactionID,
+  senderAddress,
+  instanceAddress
+) =>
+  contractInstance(instanceAddress)
+    .methods.payArbitrationFeeBySender(transactionID)
+    .send({ from: senderAddress, value: value });
+
+export const payArbitrationFeeByReceiver = (
+  value,
+  transactionID,
+  senderAddress,
+  instanceAddress
+) =>
+  contractInstance(instanceAddress)
+    .methods.payArbitrationFeeByReceiver(transactionID)
+    .send({ from: senderAddress, value: value });
+
 // Old
 
 export const reclaimFunds = (senderAddress, instanceAddress, value) =>
   contractInstance(instanceAddress)
     .methods.reclaimFunds()
     .send({ from: senderAddress, value });
-
-export const releaseFunds = (senderAddress, instanceAddress) =>
-  contractInstance(instanceAddress)
-    .methods.releaseFunds()
-    .send({ from: senderAddress });
 
 export const depositArbitrationFeeForPayee = (
   senderAddress,

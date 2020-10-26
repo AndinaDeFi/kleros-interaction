@@ -9,6 +9,7 @@ import Card from "react-bootstrap/Card";
 import InputGroup from "react-bootstrap/InputGroup";
 
 import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
+import * as Arbitrator from "./ethereum/arbitrator";
 
 class Interact extends React.Component {
   constructor(props) {
@@ -23,9 +24,11 @@ class Interact extends React.Component {
       remainingTimeToDepositArbitrationFee: "Unassigned",
       status: "Unassigned",
       arbitrator: "Unassigned",
+      extraData: "",
       payer: "Unassigned",
       payee: "Unassigned",
       value: "Unassigned",
+      arbitrationCost: 0,
       timeoutPayment: 0,
       feeTimeout: 0,
       lastInteraction: 0,
@@ -55,7 +58,7 @@ class Interact extends React.Component {
   // };
 
   updateBadges = async () => {
-    const { escrowAddress, transactionID, status } = this.state;
+    const { escrowAddress, transactionID, status, extraData } = this.state;
 
     try {
       let status = await MultipleArbitrableTransactionWithFee.status(
@@ -77,6 +80,17 @@ class Interact extends React.Component {
       this.setState({
         arbitrator: arbitrator,
       });
+      try {
+        let arbitrationCost = await Arbitrator.arbitrationCost(
+          arbitrator,
+          extraData
+        );
+        this.setState({
+          arbitrationCost: arbitrationCost,
+        });
+      } catch (e) {
+        this.setState({ arbitrationCost: "ERROR" });
+      }
     } catch (e) {
       this.setState({ arbitrator: "ERROR" });
     }
@@ -178,49 +192,6 @@ class Interact extends React.Component {
     //   }
   };
 
-  onReclaimFundsButtonClick = async (e) => {
-    e.preventDefault();
-    const { escrowAddress } = this.state;
-
-    let arbitrator = await this.props.arbitratorCallback(escrowAddress);
-    console.log(arbitrator);
-
-    let arbitrationCost = await this.props.arbitrationCostCallback(
-      arbitrator,
-      ""
-    );
-
-    await this.props.reclaimFundsCallback(escrowAddress, arbitrationCost);
-
-    this.updateBadges();
-  };
-
-  onReleaseFundsButtonClick = async (e) => {
-    e.preventDefault();
-    const { escrowAddress } = this.state;
-
-    await this.props.releaseFundsCallback(escrowAddress);
-    this.updateBadges();
-  };
-
-  onDepositArbitrationFeeFromPayeeButtonClicked = async (e) => {
-    e.preventDefault();
-    const { escrowAddress } = this.state;
-
-    let arbitrator = await this.props.arbitratorCallback(escrowAddress);
-    let arbitrationCost = await this.props.arbitrationCostCallback(
-      arbitrator,
-      ""
-    );
-
-    await this.props.depositArbitrationFeeForPayeeCallback(
-      escrowAddress,
-      arbitrationCost
-    );
-
-    this.updateBadges();
-  };
-
   onInput = (e) => {
     console.log(e.target.files);
     this.setState({ fileInput: e.target.files[0] });
@@ -262,6 +233,86 @@ class Interact extends React.Component {
     this.updateBadges();
   };
 
+  onPayButtonClick = async (e) => {
+    e.preventDefault();
+    const { value, activeAddress, transactionID, escrowAddress } = this.state;
+    try {
+      await MultipleArbitrableTransactionWithFee.pay(
+        value,
+        transactionID,
+        activeAddress,
+        escrowAddress
+      );
+      alert("Payee payed!");
+    } catch (e) {
+      console.error(e);
+    }
+    this.updateBadges();
+  };
+
+  onReimburseButtonClick = async (e) => {
+    e.preventDefault();
+    const { value, activeAddress, transactionID, escrowAddress } = this.state;
+    try {
+      await MultipleArbitrableTransactionWithFee.reimburse(
+        value,
+        transactionID,
+        activeAddress,
+        escrowAddress
+      );
+      alert("Payer reimbursed!");
+    } catch (e) {
+      console.error(e);
+    }
+    this.updateBadges();
+  };
+
+  onReclaimBySenderFundsButtonClick = async (e) => {
+    e.preventDefault();
+    const {
+      arbitrationCost,
+      activeAddress,
+      transactionID,
+      escrowAddress,
+    } = this.state;
+    try {
+      await MultipleArbitrableTransactionWithFee.payArbitrationFeeBySender(
+        arbitrationCost,
+        transactionID,
+        activeAddress,
+        escrowAddress
+      );
+      alert("Dispute created!");
+      // TODO: Check if whether HasToPayFee or raiseDispute was emitted
+    } catch (e) {
+      console.error(e);
+    }
+    this.updateBadges();
+  };
+
+  onReclaimByReceiverFundsButtonClick = async (e) => {
+    e.preventDefault();
+    const {
+      arbitrationCost,
+      activeAddress,
+      transactionID,
+      escrowAddress,
+    } = this.state;
+    try {
+      await MultipleArbitrableTransactionWithFee.payArbitrationFeeByReceiver(
+        arbitrationCost,
+        transactionID,
+        activeAddress,
+        escrowAddress
+      );
+      alert("Dispute created!");
+      // TODO: Check if whether HasToPayFee or raiseDispute was emitted
+    } catch (e) {
+      console.error(e);
+    }
+    this.updateBadges();
+  };
+
   render() {
     const {
       fileInput,
@@ -277,6 +328,12 @@ class Interact extends React.Component {
       activeAddress,
       candidateTransactionID,
     } = this.state;
+    let statusVerbose = MultipleArbitrableTransactionWithFee.STATUS[status];
+    if (statusVerbose !== undefined) {
+      statusVerbose = statusVerbose
+        .replace(/([A-Z]+)/g, " $1")
+        .replace(/^ /, "");
+    }
     return (
       <Container className="container-fluid d-flex h-100 flex-column">
         <Card className="h-100 my-4 text-center" style={{ width: "auto" }}>
@@ -307,6 +364,9 @@ class Interact extends React.Component {
               Update badges
             </Button>
             <ListGroup variant="flush">
+              <ListGroup.Item variant="primary">
+                Status: {statusVerbose}
+              </ListGroup.Item>
               <ListGroup.Item>Value (weis): {value}</ListGroup.Item>
               <ListGroup.Item>
                 Payer: {payer}
@@ -337,31 +397,50 @@ class Interact extends React.Component {
             <Badge className="m-1" pill variant="info">
               Last Interaction: {lastInteraction}
             </Badge>
-            <ButtonGroup className="mt-3">
-              <Button
-                className="mr-2"
-                variant="primary"
-                type="button"
-                onClick={this.onReleaseFundsButtonClick}
-              >
-                Release
-              </Button>
-              <Button
-                className="mr-2"
-                variant="secondary"
-                type="button"
-                onClick={this.onReclaimFundsButtonClick}
-              >
-                Reclaim
-              </Button>
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={this.onDepositArbitrationFeeFromPayeeButtonClicked}
-                block
-              >
-                Deposit Arbitration Fee For Payee
-              </Button>
+            <ButtonGroup className="mt-3" style={{ width: "100%" }}>
+              {activeAddress === payer.toLowerCase() && status == 0 && (
+                <Button
+                  className="mr-2"
+                  variant="success"
+                  type="button"
+                  onClick={this.onPayButtonClick}
+                >
+                  Pay
+                </Button>
+              )}
+              {activeAddress === payee.toLowerCase() && status == 0 && (
+                <Button
+                  className="mr-2"
+                  variant="warning"
+                  type="button"
+                  onClick={this.onReimburseButtonClick}
+                >
+                  Reimburse
+                </Button>
+              )}
+              {activeAddress === payer.toLowerCase() && status < 2 && (
+                <Button
+                  className="mr-2"
+                  variant="danger"
+                  type="button"
+                  onClick={this.onReclaimBySenderFundsButtonClick}
+                >
+                  Reclaim
+                </Button>
+              )}
+            </ButtonGroup>
+            <ButtonGroup className="mt-3" style={{ width: "100%" }}>
+              {activeAddress === payee.toLowerCase() &&
+                (status == 0 || status == 2) && (
+                  <Button
+                    className="mr-2"
+                    variant="danger"
+                    type="button"
+                    onClick={this.onReclaimByReceiverFundsButtonClick}
+                  >
+                    Reclaim
+                  </Button>
+                )}
             </ButtonGroup>
             <InputGroup className="mt-3">
               <div className="input-group">

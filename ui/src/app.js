@@ -25,17 +25,17 @@ class App extends React.Component {
     super(props);
 
     this.state = {
+      multipleArbitrableAddress: "0x0d1d0f28a9ef572cdeb10ff4300146da1f84f0d5",
+      arbitratorAddress: "0xB304Fe074073Ec2DC4adA34D066D0dB968BBeCDd",
       activeAddress: "0x0000000000000000000000000000000000000000",
-      multipleArbitrableAddress: "0x0962606142d3a3C0caF73CDc763EA1B79acD10D0",
       defaultPayee: "0x3623e33DE3Aa9cc60b300251fbDFA4ac29Fe1CFD",
       feeRecipient: "0xef5585851da91ab525839F6E8a7D4600Db77ea0c",
-      arbitratorAddress: "0x0d1D0F28A9Ef572CDEB10FF4300146da1F84F0d5",
-      arbitratorExtraData: web3.utils.utf8ToHex(0),
       feeTimeout: 5 * 60,
       feeRecipientBasisPoint: 500,
       timeoutPayment: 100,
-      arbitrationFee: 20,
+      arbitrationFee: 100,
       lastTransactionID: null,
+      // arbitratorExtraData: web3.utils.utf8ToHex(0),
     };
     this.ipfs = new Ipfs({
       host: "ipfs.kleros.io",
