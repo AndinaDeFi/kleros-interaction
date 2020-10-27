@@ -176,13 +176,16 @@ export const getRuling = async (arbitrator, disputeID, instanceAddress) => {
       return event;
     }
   );
-  console.log("Eventoossss");
-  console.log(events);
-  // TODO: Filtrar por disputeID
+  // TODO: In case of disputes, take last one
   return events[0].returnValues._ruling;
 };
 
-export const submitEvidence = (instanceAddress, senderAddress, evidence) =>
+export const submitEvidence = (
+  evidence,
+  transactionID,
+  senderAddress,
+  instanceAddress
+) =>
   contractInstance(instanceAddress)
-    .methods.submitEvidence(evidence)
+    .methods.submitEvidence(transactionID, evidence)
     .send({ from: senderAddress });

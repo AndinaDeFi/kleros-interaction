@@ -1,3 +1,8 @@
+import web3 from "./ethereum/web3";
+import Ipfs from "ipfs-http-client";
+import ipfsPublish from "./ipfs-publish";
+import generateEvidence from "./ethereum/generate-evidence";
+
 import React from "react";
 import Container from "react-bootstrap/Container";
 import Form from "react-bootstrap/Form";
@@ -7,7 +12,6 @@ import ButtonGroup from "react-bootstrap/ButtonGroup";
 import ListGroup from "react-bootstrap/ListGroup";
 import Card from "react-bootstrap/Card";
 import InputGroup from "react-bootstrap/InputGroup";
-import web3 from "./ethereum/web3";
 
 import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
 import * as Arbitrator from "./ethereum/arbitrator";
@@ -211,8 +215,32 @@ class Interact extends React.Component {
     reader.readAsArrayBuffer(fileInput);
     reader.addEventListener("loadend", async () => {
       const buffer = Buffer.from(reader.result);
-      this.props.submitEvidenceCallback(escrowAddress, buffer);
+      this.submitEvidence(buffer);
     });
+  };
+
+  submitEvidence = async (evidenceBuffer) => {
+    const { activeAddress, transactionID, escrowAddress } = this.state;
+
+    const result = await ipfsPublish("name", evidenceBuffer);
+
+    let evidence = generateEvidence(
+      "/ipfs/" + result[0]["hash"],
+      "name",
+      "description"
+    );
+    const enc = new TextEncoder();
+    const ipfsHashEvidenceObj = await ipfsPublish(
+      "evidence.json",
+      enc.encode(JSON.stringify(evidence))
+    );
+
+    MultipleArbitrableTransactionWithFee.submitEvidence(
+      "/ipfs/" + ipfsHashEvidenceObj[0]["hash"],
+      transactionID,
+      activeAddress,
+      escrowAddress
+    );
   };
 
   handleChange = (e) => {
@@ -344,19 +372,19 @@ class Interact extends React.Component {
       case "0":
         if (this.isPayer()) {
           return {
-            intro: `If you received the goods, pay the payee.`,
-            outro: `If not and you want the funds back, reclaim them. You will have to send ${arbCostVerb} as fees for possible arbitration.`,
+            title: `If you received the goods, pay the payee.`,
+            body: `If not and you want the funds back, reclaim them. You will have to send ${arbCostVerb} as fees for possible arbitration.`,
           };
         } else if (this.isPayee()) {
           if (Date.now() - lastInteraction >= timeoutPayment) {
             return {
-              intro: `You can reclaim the funds.`,
-              outro: `Could not provide the goods? Reimburse the payer.`,
+              title: `You can reclaim the funds.`,
+              body: `Could not provide the goods? Reimburse the payer.`,
             };
           } else {
             return {
-              intro: `Wait until ${reclaimLimit.toUTCString()} and reclaim the funds.`,
-              outro: `Could not provide the goods? Reimburse the payer.`,
+              title: `Wait until ${reclaimLimit.toUTCString()} and reclaim the funds.`,
+              body: `Could not provide the goods? Reimburse the payer.`,
             };
           }
         }
@@ -364,19 +392,19 @@ class Interact extends React.Component {
       case "1":
         if (this.isPayer()) {
           return {
-            intro: `Payee has deposited arbitration fees.`,
-            outro: `You need to deposit ${arbCostVerb} before ${feeDepositLimit.toUTCString()} in order to start a dispute.`,
+            title: `Payee has deposited arbitration fees.`,
+            body: `You need to deposit ${arbCostVerb} before ${feeDepositLimit.toUTCString()} in order to start a dispute.`,
           };
         } else if (this.isPayee()) {
           if (Date.now() >= feeDepositLimit) {
             return {
-              intro: `You can now reclaim the funds.`,
-              outro: `Payer has not deposited arbitration fees.`,
+              title: `You can now reclaim the funds.`,
+              body: `Payer has not deposited arbitration fees.`,
             };
           } else {
             return {
-              intro: `Nothing to be done for now.`,
-              outro: `Payer still has until ${feeDepositLimit.toUTCString()} to deposit arbitration fees and start a dispute.`,
+              title: `Nothing to be done for now.`,
+              body: `Payer still has until ${feeDepositLimit.toUTCString()} to deposit arbitration fees and start a dispute.`,
             };
           }
         }
@@ -385,26 +413,26 @@ class Interact extends React.Component {
         if (this.isPayer()) {
           if (Date.now() >= feeDepositLimit) {
             return {
-              intro: `You can now reclaim the funds.`,
-              outro: `Payee has not deposited arbitration fees.`,
+              title: `You can now reclaim the funds.`,
+              body: `Payee has not deposited arbitration fees.`,
             };
           } else {
             return {
-              intro: `Nothing to be done for now.`,
-              outro: `Payee still has until ${feeDepositLimit.toUTCString()} to deposit arbitration fees and start a dispute. `,
+              title: `Nothing to be done for now.`,
+              body: `Payee still has until ${feeDepositLimit.toUTCString()} to deposit arbitration fees and start a dispute. `,
             };
           }
         } else if (this.isPayee()) {
           return {
-            intro: `Payer has deposited arbitration fees.`,
-            outro: `You need to deposit ${arbCostVerb} before ${feeDepositLimit.toUTCString()} in order to start a dispute.`,
+            title: `Payer has deposited arbitration fees.`,
+            body: `You need to deposit ${arbCostVerb} before ${feeDepositLimit.toUTCString()} in order to start a dispute.`,
           };
         }
         break;
       case "3":
         return {
-          intro: "Nothing to be done for now.",
-          outro: "Both parties are waiting for the arbitrator to rule.",
+          title: "Nothing to be done for now.",
+          body: "Both parties are waiting for the arbitrator to rule.",
         };
       case "4":
         let outro = "The arbitrator has ruled.";
@@ -487,7 +515,7 @@ class Interact extends React.Component {
               variant="outline-primary"
               onClick={this.updateBadges}
             >
-              Update badges
+              Update status
             </Button>
             <ListGroup variant="flush">
               <ListGroup.Item variant="primary" style={{ fontSize: "120%" }}>
@@ -543,6 +571,36 @@ class Interact extends React.Component {
                       </Button>
                     )}
                 </ButtonGroup>
+                {(status == 1 || status == 2 || status == 3) && (
+                  <InputGroup className="mt-3">
+                    <div className="input-group">
+                      <div className="custom-file">
+                        <input
+                          type="file"
+                          className="custom-file-input"
+                          id="inputGroupFile04"
+                          onInput={this.onInput}
+                        />
+                        <label
+                          className="text-left custom-file-label"
+                          htmlFor="inputGroupFile04"
+                        >
+                          {(fileInput && fileInput.name) ||
+                            "Choose evidence file"}
+                        </label>
+                      </div>
+                      <div className="input-group-append">
+                        <button
+                          className="btn btn-primary"
+                          type="button"
+                          onClick={this.onSubmitButtonClick}
+                        >
+                          Submit
+                        </button>
+                      </div>
+                    </div>
+                  </InputGroup>
+                )}
               </ListGroup.Item>
               <ListGroup.Item>Value (weis): {value}</ListGroup.Item>
               <ListGroup.Item>
@@ -577,33 +635,6 @@ class Interact extends React.Component {
             <Badge className="m-1" pill variant="info">
               Last Interaction: {lastInteractionVerbose}
             </Badge>
-            <InputGroup className="mt-3">
-              <div className="input-group">
-                <div className="custom-file">
-                  <input
-                    type="file"
-                    className="custom-file-input"
-                    id="inputGroupFile04"
-                    onInput={this.onInput}
-                  />
-                  <label
-                    className="text-left custom-file-label"
-                    htmlFor="inputGroupFile04"
-                  >
-                    {(fileInput && fileInput.name) || "Choose evidence file"}
-                  </label>
-                </div>
-                <div className="input-group-append">
-                  <button
-                    className="btn btn-primary"
-                    type="button"
-                    onClick={this.onSubmitButtonClick}
-                  >
-                    Submit
-                  </button>
-                </div>
-              </div>
-            </InputGroup>
           </Card.Body>
         </Card>
       </Container>
