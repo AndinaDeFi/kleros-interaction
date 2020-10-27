@@ -9,6 +9,9 @@ export const STATUS = {
   4: "Resolved",
 };
 
+export const SENDER_WINS = 1;
+export const RECEIVER_WINS = 2;
+
 export const contractInstance = (address) =>
   new web3.eth.Contract(MultipleArbitrableTransactionWithFee.abi, address);
 
@@ -99,6 +102,14 @@ export const timeoutPayment = async (instanceAddress, transactionID) => {
   return timeoutPayment;
 };
 
+export const disputeID = async (instanceAddress, transactionID) => {
+  const res = await contractInstance(instanceAddress)
+    .methods.transactions(transactionID)
+    .call();
+  const disputeID = res.disputeId;
+  return disputeID;
+};
+
 export const lastInteraction = async (instanceAddress, transactionID) => {
   const res = await contractInstance(instanceAddress)
     .methods.transactions(transactionID)
@@ -151,40 +162,25 @@ export const payArbitrationFeeByReceiver = (
     .methods.payArbitrationFeeByReceiver(transactionID)
     .send({ from: senderAddress, value: value });
 
-// Old
-
-export const reclaimFunds = (senderAddress, instanceAddress, value) =>
-  contractInstance(instanceAddress)
-    .methods.reclaimFunds()
-    .send({ from: senderAddress, value });
-
-export const depositArbitrationFeeForPayee = (
-  senderAddress,
-  instanceAddress,
-  value
-) =>
-  contractInstance(instanceAddress)
-    .methods.depositArbitrationFeeForPayee()
-    .send({ from: senderAddress, value });
-
-export const reclamationPeriod = (instanceAddress) =>
-  contractInstance(instanceAddress).methods.reclamationPeriod().call();
-
-export const arbitrationFeeDepositPeriod = (instanceAddress) =>
-  contractInstance(instanceAddress)
-    .methods.arbitrationFeeDepositPeriod()
-    .call();
-
-export const createdAt = (instanceAddress) =>
-  contractInstance(instanceAddress).methods.createdAt().call();
-
-export const remainingTimeToReclaim = (instanceAddress) =>
-  contractInstance(instanceAddress).methods.remainingTimeToReclaim().call();
-
-export const remainingTimeToDepositArbitrationFee = (instanceAddress) =>
-  contractInstance(instanceAddress)
-    .methods.remainingTimeToDepositArbitrationFee()
-    .call();
+export const getRuling = async (arbitrator, disputeID, instanceAddress) => {
+  let events = await contractInstance(instanceAddress).getPastEvents(
+    "Ruling",
+    {
+      filter: {
+        _arbitrator: arbitrator,
+        _disputeId: disputeID,
+        fromBlock: 0,
+      },
+    },
+    function (event) {
+      return event;
+    }
+  );
+  console.log("Eventoossss");
+  console.log(events);
+  // TODO: Filtrar por disputeID
+  return events[0].returnValues._ruling;
+};
 
 export const submitEvidence = (instanceAddress, senderAddress, evidence) =>
   contractInstance(instanceAddress)

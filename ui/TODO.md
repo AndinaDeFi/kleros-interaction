@@ -1,5 +1,7 @@
 # Defiant-Kleros Transaction Escrow UI
 
+- Saber cuánto tiempo queda para depositar el arbitration fee.
+- Div nuevo: ¿What should I do?
 - Subir evidencia.
 - Si está en Resolved, buscar el event Ruling y decidir quién ganó.
 - Si el ruling es apelable, poder apelar.

@@ -7,9 +7,12 @@ import ButtonGroup from "react-bootstrap/ButtonGroup";
 import ListGroup from "react-bootstrap/ListGroup";
 import Card from "react-bootstrap/Card";
 import InputGroup from "react-bootstrap/InputGroup";
+import web3 from "./ethereum/web3";
 
 import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
 import * as Arbitrator from "./ethereum/arbitrator";
+
+import * as Config from "./config";
 
 class Interact extends React.Component {
   constructor(props) {
@@ -32,6 +35,8 @@ class Interact extends React.Component {
       timeoutPayment: 0,
       feeTimeout: 0,
       lastInteraction: 0,
+      disputeID: null,
+      ruling: null,
     };
   }
 
@@ -52,13 +57,8 @@ class Interact extends React.Component {
     if (changed && this.state.transactionID != null) this.updateBadges();
   }
 
-  // onEscrowAddressChange = async (e) => {
-  //   await this.setState({ escrowAddress: e.target.value });
-  //   this.updateBadges();
-  // };
-
   updateBadges = async () => {
-    const { escrowAddress, transactionID, status, extraData } = this.state;
+    const { escrowAddress, transactionID, extraData, arbitrator } = this.state;
 
     try {
       let status = await MultipleArbitrableTransactionWithFee.status(
@@ -167,29 +167,32 @@ class Interact extends React.Component {
       this.setState({ lastInteraction: "ERROR" });
     }
 
-    // if (Number(status) === 0)
-    //   try {
-    //     this.setState({
-    //       remainingTimeToReclaim: await this.props.remainingTimeToReclaimCallback(
-    //         escrowAddress
-    //       ),
-    //     });
-    //   } catch (e) {
-    //     console.error(e);
-    //     this.setState({ status: "ERROR" });
-    //   }
-
-    // if (Number(status) === 1)
-    //   try {
-    //     this.setState({
-    //       remainingTimeToDepositArbitrationFee: await this.props.remainingTimeToDepositArbitrationFeeCallback(
-    //         escrowAddress
-    //       ),
-    //     });
-    //   } catch (e) {
-    //     console.error(e);
-    //     this.setState({ status: "ERROR" });
-    //   }
+    if (this.state.status >= 3) {
+      try {
+        let disputeID = await MultipleArbitrableTransactionWithFee.disputeID(
+          escrowAddress,
+          transactionID
+        );
+        this.setState({
+          disputeID: disputeID,
+        });
+        try {
+          let ruling = await MultipleArbitrableTransactionWithFee.getRuling(
+            this.state.arbitrator,
+            disputeID,
+            escrowAddress
+          );
+          this.setState({
+            ruling: ruling,
+          });
+        } catch (e) {
+          console.error(e);
+          this.setState({ ruling: "ERROR" });
+        }
+      } catch (e) {
+        this.setState({ disputeID: "ERROR" });
+      }
+    }
   };
 
   onInput = (e) => {
@@ -313,6 +316,122 @@ class Interact extends React.Component {
     this.updateBadges();
   };
 
+  isPayee = () => this.state.activeAddress === this.state.payee.toLowerCase();
+
+  isPayer = () => this.state.activeAddress === this.state.payer.toLowerCase();
+
+  suggestedAction = () => {
+    const {
+      feeTimeout,
+      timeoutPayment,
+      status,
+      arbitrationCost,
+      lastInteraction,
+      ruling,
+    } = this.state;
+    let arbCostBN = web3.utils.toBN(arbitrationCost);
+    let arbCostVerb = `${web3.utils.fromWei(arbCostBN, "ether")} ${
+      Config.baseCoin
+    }`;
+    let reclaimLimit = new Date(
+      (parseInt(lastInteraction) + parseInt(timeoutPayment)) * 1000
+    );
+    let feeDepositLimit = new Date(
+      (parseInt(lastInteraction) + parseInt(feeTimeout)) * 1000
+    );
+
+    switch (status) {
+      case "0":
+        if (this.isPayer()) {
+          return {
+            intro: `If you received the goods, pay the payee.`,
+            outro: `If not and you want the funds back, reclaim them. You will have to send ${arbCostVerb} as fees for possible arbitration.`,
+          };
+        } else if (this.isPayee()) {
+          if (Date.now() - lastInteraction >= timeoutPayment) {
+            return {
+              intro: `You can reclaim the funds.`,
+              outro: `Could not provide the goods? Reimburse the payer.`,
+            };
+          } else {
+            return {
+              intro: `Wait until ${reclaimLimit.toUTCString()} and reclaim the funds.`,
+              outro: `Could not provide the goods? Reimburse the payer.`,
+            };
+          }
+        }
+        break;
+      case "1":
+        if (this.isPayer()) {
+          return {
+            intro: `Payee has deposited arbitration fees.`,
+            outro: `You need to deposit ${arbCostVerb} before ${feeDepositLimit.toUTCString()} in order to start a dispute.`,
+          };
+        } else if (this.isPayee()) {
+          if (Date.now() >= feeDepositLimit) {
+            return {
+              intro: `You can now reclaim the funds.`,
+              outro: `Payer has not deposited arbitration fees.`,
+            };
+          } else {
+            return {
+              intro: `Nothing to be done for now.`,
+              outro: `Payer still has until ${feeDepositLimit.toUTCString()} to deposit arbitration fees and start a dispute.`,
+            };
+          }
+        }
+        break;
+      case "2":
+        if (this.isPayer()) {
+          if (Date.now() >= feeDepositLimit) {
+            return {
+              intro: `You can now reclaim the funds.`,
+              outro: `Payee has not deposited arbitration fees.`,
+            };
+          } else {
+            return {
+              intro: `Nothing to be done for now.`,
+              outro: `Payee still has until ${feeDepositLimit.toUTCString()} to deposit arbitration fees and start a dispute. `,
+            };
+          }
+        } else if (this.isPayee()) {
+          return {
+            intro: `Payer has deposited arbitration fees.`,
+            outro: `You need to deposit ${arbCostVerb} before ${feeDepositLimit.toUTCString()} in order to start a dispute.`,
+          };
+        }
+        break;
+      case "3":
+        return {
+          intro: "Nothing to be done for now.",
+          outro: "Both parties are waiting for the arbitrator to rule.",
+        };
+      case "4":
+        let outro = "The arbitrator has ruled.";
+
+        let intro = `Ruling: ${ruling}`;
+        if (
+          (this.isPayer() &&
+            ruling ===
+              MultipleArbitrableTransactionWithFee.SENDER_WINS.toString()) ||
+          (this.isPayee() &&
+            ruling ===
+              MultipleArbitrableTransactionWithFee.RECEIVER_WINS.toString())
+        ) {
+          intro = "You won! Funds have been sent to you.";
+        } else {
+          intro = "You lost... Sorry about that.";
+        }
+        return {
+          title: intro,
+          body: outro,
+        };
+
+      default:
+        return `Transaction correctly set?`;
+    }
+  };
+
   render() {
     const {
       fileInput,
@@ -327,6 +446,7 @@ class Interact extends React.Component {
       lastInteraction,
       activeAddress,
       candidateTransactionID,
+      disputeID,
     } = this.state;
     let statusVerbose = MultipleArbitrableTransactionWithFee.STATUS[status];
     if (statusVerbose !== undefined) {
@@ -334,6 +454,12 @@ class Interact extends React.Component {
         .replace(/([A-Z]+)/g, " $1")
         .replace(/^ /, "");
     }
+    let lastInteractionVerbose = "";
+    if (lastInteraction != 0)
+      lastInteractionVerbose = new Date(
+        parseInt(lastInteraction) * 1000
+      ).toUTCString();
+    let actionHint = this.suggestedAction();
     return (
       <Container className="container-fluid d-flex h-100 flex-column">
         <Card className="h-100 my-4 text-center" style={{ width: "auto" }}>
@@ -364,8 +490,59 @@ class Interact extends React.Component {
               Update badges
             </Button>
             <ListGroup variant="flush">
-              <ListGroup.Item variant="primary">
+              <ListGroup.Item variant="primary" style={{ fontSize: "120%" }}>
                 Status: {statusVerbose}
+              </ListGroup.Item>
+              <ListGroup.Item variant="info">
+                <p style={{ fontWeight: "bold" }}>What should I do?</p>
+                <h5>{actionHint.title}</h5>
+                <p>{actionHint.body}</p>
+
+                <ButtonGroup className="mt-3" style={{ width: "100%" }}>
+                  {activeAddress === payer.toLowerCase() && status == 0 && (
+                    <Button
+                      className="mr-2"
+                      variant="success"
+                      type="button"
+                      onClick={this.onPayButtonClick}
+                    >
+                      Pay
+                    </Button>
+                  )}
+                  {activeAddress === payee.toLowerCase() && status == 0 && (
+                    <Button
+                      className="mr-2"
+                      variant="warning"
+                      type="button"
+                      onClick={this.onReimburseButtonClick}
+                    >
+                      Reimburse
+                    </Button>
+                  )}
+                  {activeAddress === payer.toLowerCase() && status < 2 && (
+                    <Button
+                      className="mr-2"
+                      variant="danger"
+                      type="button"
+                      onClick={this.onReclaimBySenderFundsButtonClick}
+                    >
+                      Reclaim
+                    </Button>
+                  )}
+                </ButtonGroup>
+                <ButtonGroup className="mt-3" style={{ width: "100%" }}>
+                  {activeAddress === payee.toLowerCase() &&
+                    (status == 0 || status == 2) && (
+                      <Button
+                        className="mr-2"
+                        variant="danger"
+                        type="button"
+                        onClick={this.onReclaimByReceiverFundsButtonClick}
+                      >
+                        Reclaim
+                      </Button>
+                    )}
+                </ButtonGroup>
               </ListGroup.Item>
               <ListGroup.Item>Value (weis): {value}</ListGroup.Item>
               <ListGroup.Item>
@@ -389,59 +566,17 @@ class Interact extends React.Component {
               Status Code: {status}
             </Badge>
             <Badge className="m-1" pill variant="info">
+              Dispute ID: {disputeID}
+            </Badge>
+            <Badge className="m-1" pill variant="info">
               Timeout Payment: {timeoutPayment}
             </Badge>
             <Badge className="m-1" pill variant="info">
               Fee Timeout: {feeTimeout}
             </Badge>
             <Badge className="m-1" pill variant="info">
-              Last Interaction: {lastInteraction}
+              Last Interaction: {lastInteractionVerbose}
             </Badge>
-            <ButtonGroup className="mt-3" style={{ width: "100%" }}>
-              {activeAddress === payer.toLowerCase() && status == 0 && (
-                <Button
-                  className="mr-2"
-                  variant="success"
-                  type="button"
-                  onClick={this.onPayButtonClick}
-                >
-                  Pay
-                </Button>
-              )}
-              {activeAddress === payee.toLowerCase() && status == 0 && (
-                <Button
-                  className="mr-2"
-                  variant="warning"
-                  type="button"
-                  onClick={this.onReimburseButtonClick}
-                >
-                  Reimburse
-                </Button>
-              )}
-              {activeAddress === payer.toLowerCase() && status < 2 && (
-                <Button
-                  className="mr-2"
-                  variant="danger"
-                  type="button"
-                  onClick={this.onReclaimBySenderFundsButtonClick}
-                >
-                  Reclaim
-                </Button>
-              )}
-            </ButtonGroup>
-            <ButtonGroup className="mt-3" style={{ width: "100%" }}>
-              {activeAddress === payee.toLowerCase() &&
-                (status == 0 || status == 2) && (
-                  <Button
-                    className="mr-2"
-                    variant="danger"
-                    type="button"
-                    onClick={this.onReclaimByReceiverFundsButtonClick}
-                  >
-                    Reclaim
-                  </Button>
-                )}
-            </ButtonGroup>
             <InputGroup className="mt-3">
               <div className="input-group">
                 <div className="custom-file">

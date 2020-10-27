@@ -25,8 +25,8 @@ class App extends React.Component {
     super(props);
 
     this.state = {
-      multipleArbitrableAddress: "0x0d1d0f28a9ef572cdeb10ff4300146da1f84f0d5",
-      arbitratorAddress: "0xB304Fe074073Ec2DC4adA34D066D0dB968BBeCDd",
+      multipleArbitrableAddress: "0xc3b5fa1af1bcf1a9925d622e5fafca313089d03e",
+      arbitratorAddress: "0xb304fe074073ec2dc4ada34d066d0db968bbecdd",
       activeAddress: "0x0000000000000000000000000000000000000000",
       defaultPayee: "0x3623e33DE3Aa9cc60b300251fbDFA4ac29Fe1CFD",
       feeRecipient: "0xef5585851da91ab525839F6E8a7D4600Db77ea0c",
@@ -35,7 +35,7 @@ class App extends React.Component {
       timeoutPayment: 100,
       arbitrationFee: 100,
       lastTransactionID: null,
-      // arbitratorExtraData: web3.utils.utf8ToHex(0),
+      arbitratorExtraData: web3.utils.utf8ToHex(0),
     };
     this.ipfs = new Ipfs({
       host: "ipfs.kleros.io",
@@ -87,56 +87,6 @@ class App extends React.Component {
 
   load = (contractAddress) =>
     MultipleArbitrableTransactionWithFee.contractInstance(contractAddress);
-
-  reclaimFunds = async (contractAddress, value) => {
-    const { activeAddress } = this.state;
-    await MultipleArbitrableTransactionWithFee.reclaimFunds(
-      activeAddress,
-      contractAddress,
-      value
-    );
-  };
-
-  // status = (contractAddress, transactionID) =>
-  //   MultipleArbitrableTransactionWithFee.status(contractAddress, transactionID);
-
-  // releaseFunds = async (contractAddress) => {
-  //   const { activeAddress } = this.state;
-
-  //   await SimpleEscrowWithERC1497.releaseFunds(activeAddress, contractAddress);
-  // };
-
-  // depositArbitrationFeeForPayee = (contractAddress, value) => {
-  //   const { activeAddress } = this.state;
-
-  //   SimpleEscrowWithERC1497.depositArbitrationFeeForPayee(
-  //     activeAddress,
-  //     contractAddress,
-  //     value
-  //   );
-  // };
-
-  // reclamationPeriod = (contractAddress) =>
-  //   SimpleEscrowWithERC1497.reclamationPeriod(contractAddress);
-
-  // arbitrationFeeDepositPeriod = (contractAddress) =>
-  //   SimpleEscrowWithERC1497.arbitrationFeeDepositPeriod(contractAddress);
-
-  // remainingTimeToReclaim = (contractAddress) =>
-  //   SimpleEscrowWithERC1497.remainingTimeToReclaim(contractAddress);
-
-  // remainingTimeToDepositArbitrationFee = (contractAddress) =>
-  //   SimpleEscrowWithERC1497.remainingTimeToDepositArbitrationFee(
-  //     contractAddress
-  //   );
-
-  // arbitrationCost = (arbitratorAddress, extraData) =>
-  //   Arbitrator.arbitrationCost(arbitratorAddress, extraData);
-
-  // arbitrator = (contractAddress) =>
-  //   SimpleEscrowWithERC1497.arbitrator(contractAddress);
-
-  // value = (contractAddress) => SimpleEscrowWithERC1497.value(contractAddress);
 
   // submitEvidence = async (contractAddress, evidenceBuffer) => {
   //   const { activeAddress } = this.state;
