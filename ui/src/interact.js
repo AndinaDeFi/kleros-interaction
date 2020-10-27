@@ -1,5 +1,4 @@
 import web3 from "./ethereum/web3";
-import Ipfs from "ipfs-http-client";
 import ipfsPublish from "./ipfs-publish";
 import generateEvidence from "./ethereum/generate-evidence";
 
@@ -62,7 +61,7 @@ class Interact extends React.Component {
   }
 
   updateBadges = async () => {
-    const { escrowAddress, transactionID, extraData, arbitrator } = this.state;
+    const { escrowAddress, transactionID, extraData } = this.state;
 
     try {
       let status = await MultipleArbitrableTransactionWithFee.status(
@@ -207,7 +206,7 @@ class Interact extends React.Component {
 
   onSubmitButtonClick = async (e) => {
     e.preventDefault();
-    const { escrowAddress, fileInput } = this.state;
+    const { fileInput } = this.state;
     console.log("submit clicked");
     console.log(fileInput);
 
@@ -483,7 +482,7 @@ class Interact extends React.Component {
         .replace(/^ /, "");
     }
     let lastInteractionVerbose = "";
-    if (lastInteraction != 0)
+    if (lastInteraction !== 0)
       lastInteractionVerbose = new Date(
         parseInt(lastInteraction) * 1000
       ).toUTCString();
@@ -527,7 +526,7 @@ class Interact extends React.Component {
                 <p>{actionHint.body}</p>
 
                 <ButtonGroup className="mt-3" style={{ width: "100%" }}>
-                  {activeAddress === payer.toLowerCase() && status == 0 && (
+                  {activeAddress === payer.toLowerCase() && status === 0 && (
                     <Button
                       className="mr-2"
                       variant="success"
@@ -537,7 +536,7 @@ class Interact extends React.Component {
                       Pay
                     </Button>
                   )}
-                  {activeAddress === payee.toLowerCase() && status == 0 && (
+                  {activeAddress === payee.toLowerCase() && status === 0 && (
                     <Button
                       className="mr-2"
                       variant="warning"
@@ -560,7 +559,7 @@ class Interact extends React.Component {
                 </ButtonGroup>
                 <ButtonGroup className="mt-3" style={{ width: "100%" }}>
                   {activeAddress === payee.toLowerCase() &&
-                    (status == 0 || status == 2) && (
+                    (status === 0 || status === 2) && (
                       <Button
                         className="mr-2"
                         variant="danger"
@@ -571,7 +570,7 @@ class Interact extends React.Component {
                       </Button>
                     )}
                 </ButtonGroup>
-                {(status == 1 || status == 2 || status == 3) && (
+                {(status === 1 || status === 2 || status === 3) && (
                   <InputGroup className="mt-3">
                     <div className="input-group">
                       <div className="custom-file">

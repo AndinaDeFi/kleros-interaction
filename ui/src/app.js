@@ -1,14 +1,11 @@
 import React from "react";
 import web3 from "./ethereum/web3";
-import generateEvidence from "./ethereum/generate-evidence";
-import generateMetaevidence from "./ethereum/generate-meta-evidence";
-import * as SimpleEscrowWithERC1497 from "./ethereum/simple-escrow-with-erc1497";
-import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
-import MultipleContract from "./ethereum/MultipleArbitrableTransactionWithFee.json";
-
-import * as Arbitrator from "./ethereum/arbitrator";
 import Ipfs from "ipfs-http-client";
 import ipfsPublish from "./ipfs-publish";
+
+import generateMetaevidence from "./ethereum/generate-meta-evidence";
+import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
+import MultipleContract from "./ethereum/MultipleArbitrableTransactionWithFee.json";
 
 import Container from "react-bootstrap/Container";
 import Jumbotron from "react-bootstrap/Jumbotron";
@@ -87,29 +84,6 @@ class App extends React.Component {
 
   load = (contractAddress) =>
     MultipleArbitrableTransactionWithFee.contractInstance(contractAddress);
-
-  // submitEvidence = async (contractAddress, evidenceBuffer) => {
-  //   const { activeAddress } = this.state;
-
-  //   const result = await ipfsPublish("name", evidenceBuffer);
-
-  //   let evidence = generateEvidence(
-  //     "/ipfs/" + result[0]["hash"],
-  //     "name",
-  //     "description"
-  //   );
-  //   const enc = new TextEncoder();
-  //   const ipfsHashEvidenceObj = await ipfsPublish(
-  //     "evidence.json",
-  //     enc.encode(JSON.stringify(evidence))
-  //   );
-
-  //   SimpleEscrowWithERC1497.submitEvidence(
-  //     contractAddress,
-  //     activeAddress,
-  //     "/ipfs/" + ipfsHashEvidenceObj[0]["hash"]
-  //   );
-  // };
 
   onMultArbAddressChange = async (e) => {
     const targetMultArbAddress = e.target.value.trim();
