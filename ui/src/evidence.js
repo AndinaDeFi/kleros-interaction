@@ -7,8 +7,6 @@ class Evidence extends React.Component {
     this.ipfsGateway = "https://ipfs.kleros.io";
   }
   typeToIcon = (type) => {
-    console.log("typetoicon");
-    console.log(type);
     switch (type) {
       case "video":
         return "video.svg";

@@ -48,15 +48,17 @@ class Evidences extends React.Component {
     }
     if (this.props.payer !== prevProps.payer) {
       this.setState({ payer: this.props.payer });
+      changed = true;
     }
     if (this.props.payee !== prevProps.payee) {
       this.setState({ payee: this.props.payee });
+      changed = true;
     }
     if (
       changed &&
-      this.state.disputeID != null &&
-      this.state.arbitrableAddress != "Unassigned" &&
-      this.state.arbitratorAddress != "Unassigned"
+      this.props.disputeID != null &&
+      this.props.arbitrableAddress != "Unassigned" &&
+      this.props.arbitratorAddress != "Unassigned"
     )
       this.getEvidences();
   }
@@ -74,6 +76,11 @@ class Evidences extends React.Component {
     );
     const filter = { _arbitrator: arbitratorAddress, _disputeID: disputeID };
     const options = { filter, fromBlock: 0 };
+
+    this.setState({
+      payerEvidence: [],
+      payeeEvidence: [],
+    });
 
     arbitrable.getPastEvents("Dispute", options).then((events) =>
       events.map((event) =>
@@ -137,7 +144,6 @@ class Evidences extends React.Component {
 
   render() {
     const { payerEvidence, payeeEvidence } = this.state;
-    console.log(payerEvidence[0]);
 
     return (
       <Container>
@@ -145,26 +151,26 @@ class Evidences extends React.Component {
         <Row>
           <Card className="my-4 text-center " style={{ width: "auto" }}>
             <Card.Body>
-              <Card.Title>{`Payer's evidence`}</Card.Title>
-              <Card.Text>
-                {payerEvidence == [] ? (
-                  "No evidence submitted."
-                ) : (
-                  <Row>{this.evidences(payerEvidence)}</Row>
-                )}
-              </Card.Text>
+              <Card.Title>Payer's evidence</Card.Title>
+              {payerEvidence === [] ? (
+                "No evidence submitted."
+              ) : (
+                <Row style={{ justifyContent: "center" }}>
+                  {this.evidences(payerEvidence)}
+                </Row>
+              )}
             </Card.Body>
           </Card>
           <Card className="my-4 text-center " style={{ width: "auto" }}>
             <Card.Body>
-              <Card.Title>{`Payee's evidence`}</Card.Title>
-              <Card.Text>
-                {payeeEvidence == [] ? (
-                  "No evidence submitted."
-                ) : (
-                  <Row>{this.evidences(payeeEvidence)}</Row>
-                )}
-              </Card.Text>
+              <Card.Title>Payee's evidence</Card.Title>
+              {payeeEvidence === [] ? (
+                "No evidence submitted."
+              ) : (
+                <Row style={{ justifyContent: "center" }}>
+                  {this.evidences(payeeEvidence)}
+                </Row>
+              )}
             </Card.Body>
           </Card>
         </Row>
