@@ -1,6 +1,6 @@
 # Defiant-Kleros Transaction Escrow UI
 
-- Ver la evidencia que ya subi.
+- Que no haya que cliquear 2 veces para que se carguen las evidencias.
 - Estilar y rebrandear a Defiant.
 - Explicar:
   - Monto de fees.

@@ -52,7 +52,7 @@ class NewTransaction extends React.Component {
                   rows="1"
                   value={amount}
                   onChange={this.onAmountChange}
-                  placeholder={"Escrow Amount in Weis"}
+                  placeholder={"Transaction amount (in weis)"}
                 />
               </Form.Group>
               <Form.Group controlId="payee">
@@ -61,7 +61,8 @@ class NewTransaction extends React.Component {
                   rows="1"
                   value={payee}
                   onChange={this.onPayeeChange}
-                  placeholder={this.props.defaultPayee}
+                  // placeholder={this.props.defaultPayee}
+                  placeholder="Payee"
                 />
               </Form.Group>
               <Form.Group controlId="title">
@@ -88,7 +89,7 @@ class NewTransaction extends React.Component {
                 onClick={this.onDeployButtonClick}
                 block
               >
-                Deploy
+                Create new transaction
               </Button>
             </Form>
           </Card.Body>

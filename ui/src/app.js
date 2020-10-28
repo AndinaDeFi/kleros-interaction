@@ -14,6 +14,7 @@ import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
 import Badge from "react-bootstrap/Badge";
+import Card from "react-bootstrap/Card";
 import NewTransaction from "./new-transaction.js";
 import Interact from "./interact.js";
 
@@ -134,7 +135,6 @@ class App extends React.Component {
         this.setState({
           activeAddress: accounts[0],
         });
-        console.log("Account recognized");
       });
     } else console.error("MetaMask account not detected :(");
 
@@ -158,31 +158,39 @@ class App extends React.Component {
           <Col>
             <h1 className="text-center my-5"> Defiant Transaction Escrow </h1>{" "}
             <Row>
-              <p>
-                <Button
-                  type="submit"
-                  variant="outline-primary"
-                  onClick={this.onDeployMultArbButtonClick}
-                >
-                  Deploy Multiple Arbitrator with Fee{" "}
-                </Button>{" "}
-              </p>{" "}
-              <Form.Group controlId="escrow-address">
-                <Form.Control
-                  className="text-center"
-                  as="input"
-                  rows="1"
-                  value={multipleArbitrableAddress}
-                  onChange={this.onMultArbAddressChange}
-                />
-              </Form.Group>
-              <p>
-                <Badge
-                  className="m-1"
-                  pill
-                  variant="info"
-                >{`Deployed at: ${multipleArbitrableAddress}`}</Badge>
-              </p>
+              <Card
+                className="h-100 my-4 text-center"
+                style={{ width: "100%" }}
+              >
+                <Card.Body>
+                  <Card.Title>Multiple Arbitrator with Fee</Card.Title>
+                  <p>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      onClick={this.onDeployMultArbButtonClick}
+                    >
+                      Deploy new contract{" "}
+                    </Button>{" "}
+                  </p>{" "}
+                  <Form.Group controlId="escrow-address">
+                    <Form.Control
+                      className="text-center"
+                      as="input"
+                      rows="1"
+                      value={multipleArbitrableAddress}
+                      onChange={this.onMultArbAddressChange}
+                    />
+                  </Form.Group>
+                  <p>
+                    <Badge
+                      className="m-1"
+                      pill
+                      variant="info"
+                    >{`Deployed at: ${multipleArbitrableAddress}`}</Badge>
+                  </p>
+                </Card.Body>
+              </Card>
             </Row>
           </Col>{" "}
         </Row>{" "}
@@ -195,45 +203,10 @@ class App extends React.Component {
           </Col>{" "}
           <Col>
             <Interact
-              // arbitratorCallback={this.arbitrator}
-              // arbitrationCostCallback={this.arbitrationCost}
               activeAddress={activeAddress}
               escrowAddress={multipleArbitrableAddress}
               transactionID={lastTransactionID}
-              transactionIDCallback={this.transactionIDCallback}
-              // reclaimFundsCallback={
-              //   this.reclaimFunds // loadCallback={this.load}
-              // }
-              // releaseFundsCallback={this.releaseFunds}
-              // depositArbitrationFeeForPayeeCallback={
-              //   this.depositArbitrationFeeForPayee
-              // }
-              // remainingTimeToReclaimCallback={this.remainingTimeToReclaim}
-              // remainingTimeToDepositArbitrationFeeCallback={
-              //   this.remainingTimeToDepositArbitrationFee
-              // }
-              // statusCallback={this.status}
-              // valueCallback={this.value}
-              // submitEvidenceCallback={this.submitEvidence}
             />{" "}
-          </Col>{" "}
-        </Row>{" "}
-        <Row>
-          <Col>
-            <Form action="https://centralizedarbitrator.netlify.com">
-              <Jumbotron className="m-5 text-center">
-                <h1> Need to interact with your arbitrator contract ? </h1>{" "}
-                <p>
-                  We have a general purpose user interface for centralized
-                  arbitrators(like we have developed in the tutorial) already.{" "}
-                </p>{" "}
-                <p>
-                  <Button type="submit" variant="primary">
-                    Visit Centralized Arbitrator Dashboard{" "}
-                  </Button>{" "}
-                </p>{" "}
-              </Jumbotron>{" "}
-            </Form>{" "}
           </Col>{" "}
         </Row>{" "}
       </Container>

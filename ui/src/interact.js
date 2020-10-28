@@ -16,11 +16,11 @@ import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbit
 import * as Arbitrator from "./ethereum/arbitrator";
 
 import * as Config from "./config";
+import Evidences from "./evidences";
 
 class Interact extends React.Component {
   constructor(props) {
     super(props);
-    this.NUMBER_OF_STATUS = 5;
     this.state = {
       escrowAddress: this.props.escrowAddress,
       transactionID: this.props.transactionID,
@@ -474,6 +474,7 @@ class Interact extends React.Component {
       activeAddress,
       candidateTransactionID,
       disputeID,
+      escrowAddress,
     } = this.state;
     let statusVerbose = MultipleArbitrableTransactionWithFee.STATUS[status];
     if (statusVerbose !== undefined) {
@@ -505,23 +506,29 @@ class Interact extends React.Component {
                 onChange={this.handleChange}
               />
             </Form.Group>
-            <Button type="submit" variant="primary" onClick={this.handleSubmit}>
-              Set transaction ID
-            </Button>{" "}
-            <Button
-              className="mr-2"
-              type="button"
-              variant="outline-primary"
-              onClick={this.updateBadges}
-            >
-              Update status
-            </Button>
+            <Form.Group>
+              <Button
+                type="submit"
+                variant="primary"
+                onClick={this.handleSubmit}
+              >
+                Set transaction ID
+              </Button>{" "}
+              <Button
+                className="mr-2"
+                type="button"
+                variant="outline-primary"
+                onClick={this.updateBadges}
+              >
+                Update status
+              </Button>
+            </Form.Group>
             <ListGroup variant="flush">
               <ListGroup.Item variant="primary" style={{ fontSize: "120%" }}>
                 Status: {statusVerbose}
               </ListGroup.Item>
               <ListGroup.Item variant="info">
-                <p style={{ fontWeight: "bold" }}>What should I do?</p>
+                <p style={{ fontStyle: "italic" }}>What should I do?</p>
                 <h5>{actionHint.title}</h5>
                 <p>{actionHint.body}</p>
 
@@ -572,6 +579,10 @@ class Interact extends React.Component {
                 </ButtonGroup>
                 {(status === 1 || status === 2 || status === 3) && (
                   <InputGroup className="mt-3">
+                    <h6>
+                      You may submit evidence to backup your claim, for
+                      consideration of the jurors.
+                    </h6>
                     <div className="input-group">
                       <div className="custom-file">
                         <input
@@ -601,7 +612,7 @@ class Interact extends React.Component {
                   </InputGroup>
                 )}
               </ListGroup.Item>
-              <ListGroup.Item>Value (weis): {value}</ListGroup.Item>
+              <ListGroup.Item>Value in escrow (weis): {value}</ListGroup.Item>
               <ListGroup.Item>
                 Payer: {payer}
                 <Badge className="m-1" pill variant="success">
@@ -636,6 +647,16 @@ class Interact extends React.Component {
             </Badge>
           </Card.Body>
         </Card>
+        <Evidences
+          // disputeIDCallback={this.disputeIDCallback}
+          // arbitratorCallback={this.arbitratorCallback}
+          // arbitrableCallback={this.arbitrableCallback}
+          arbitratorAddress={arbitrator}
+          arbitrableAddress={escrowAddress}
+          disputeID={disputeID}
+          payer={payer}
+          payee={payee}
+        />
       </Container>
     );
   }
