@@ -168,7 +168,7 @@ export const getRuling = async (arbitrator, disputeID, instanceAddress) => {
     {
       filter: {
         _arbitrator: arbitrator,
-        _disputeId: disputeID,
+        _disputeID: disputeID,
         fromBlock: 0,
       },
     },
@@ -178,6 +178,22 @@ export const getRuling = async (arbitrator, disputeID, instanceAddress) => {
   );
   // TODO: In case of disputes, take last one
   return events[0].returnValues._ruling;
+};
+
+export const getPayments = async (transactionID, instanceAddress) => {
+  let events = await contractInstance(instanceAddress).getPastEvents(
+    "Payment",
+    {
+      filter: {
+        _transactionID: transactionID,
+        fromBlock: 0,
+      },
+    },
+    function (event) {
+      return event;
+    }
+  );
+  return events;
 };
 
 export const submitEvidence = (

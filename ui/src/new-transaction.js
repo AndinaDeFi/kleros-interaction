@@ -146,8 +146,13 @@ class NewTransaction extends React.Component {
 
               {coin !== "rbtc" && (
                 <div>
-                  <div>{`Allowed: ${allowedAmount} ${coin.toUpperCase()}`}</div>
-                  <Form.Group controlId="approve">
+                  <p
+                    style={{ marginBottom: "0", fontStyle: "italic" }}
+                  >{`${allowedAmount} ${coin.toUpperCase()} allowed. Need to approve more?`}</p>
+                  <Form.Group
+                    controlId="approve"
+                    style={{ display: "flex", justifyContent: "center" }}
+                  >
                     <Form.Control
                       as="input"
                       rows="1"
@@ -155,9 +160,10 @@ class NewTransaction extends React.Component {
                       onChange={this.onAmountToApproveChange}
                       placeholder={"Amount to approve"}
                       label="Amount to approve"
+                      // style
                     />
                     <Button
-                      variant="secondary"
+                      variant="outline-primary"
                       type="button"
                       onClick={this.onApproveButtonClick}
                       // block

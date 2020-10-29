@@ -23,8 +23,7 @@ class Interact extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      // tokenEscrowAddress: this.props.tokenEscrowAddress,
-      // transacEscrowAddress: this.props.transacEscrowAddress,
+      escrowClass: MultipleArbitrableTransactionWithFee,
       escrowAddress: this.props.transacEscrowAddress,
       transactionID: this.props.transactionID,
       candidateTransactionID: "",
@@ -45,6 +44,7 @@ class Interact extends React.Component {
       ruling: null,
       coin: this.props.coin,
       tokenAddress: null,
+      payments: [],
     };
   }
 
@@ -60,19 +60,27 @@ class Interact extends React.Component {
       changed = true;
     }
     if (this.props.transactionID !== prevProps.transactionID) {
-      this.setState({ transactionID: this.props.transactionID });
+      const tID = this.props.transactionID;
+      this.setState({ transactionID: tID, candidateTransactionID: tID });
       changed = true;
     }
     if (this.props.coin !== prevProps.coin) {
-      let tokenAddress, escrowAddress;
+      let tokenAddress, escrowAddress, escrowClass;
       if (this.props.coin === "rbtc") {
         tokenAddress = null;
         escrowAddress = this.props.transacEscrowAddress;
+        escrowClass = MultipleArbitrableTransactionWithFee;
       } else {
         tokenAddress = this.props.tokenAddresses.erc20;
         escrowAddress = this.props.tokenEscrowAddress;
+        escrowClass = MultipleArbitrableTokenTransactionWithFee;
       }
-      this.setState({ coin: this.props.coin, tokenAddress, escrowAddress });
+      this.setState({
+        coin: this.props.coin,
+        tokenAddress,
+        escrowAddress,
+        escrowClass,
+      });
       changedCoin = true;
     }
     if (changedCoin) this.cleanBadges();
@@ -89,14 +97,7 @@ class Interact extends React.Component {
   };
 
   updateBadges = async () => {
-    const { escrowAddress, transactionID, extraData, coin } = this.state;
-    let escrowClass;
-    if (coin === "rbtc") {
-      escrowClass = MultipleArbitrableTransactionWithFee;
-    } else {
-      escrowClass = MultipleArbitrableTokenTransactionWithFee;
-    }
-
+    const { escrowAddress, transactionID, extraData, escrowClass } = this.state;
     try {
       let status = await escrowClass.status(escrowAddress, transactionID);
       this.setState({
@@ -130,10 +131,7 @@ class Interact extends React.Component {
     }
 
     try {
-      let value = await MultipleArbitrableTransactionWithFee.value(
-        escrowAddress,
-        transactionID
-      );
+      let value = await escrowClass.value(escrowAddress, transactionID);
       this.setState({
         value: value,
       });
@@ -142,10 +140,7 @@ class Interact extends React.Component {
     }
 
     try {
-      let payer = await MultipleArbitrableTransactionWithFee.payer(
-        escrowAddress,
-        transactionID
-      );
+      let payer = await escrowClass.payer(escrowAddress, transactionID);
       this.setState({
         payer: payer,
       });
@@ -154,10 +149,7 @@ class Interact extends React.Component {
     }
 
     try {
-      let payee = await MultipleArbitrableTransactionWithFee.payee(
-        escrowAddress,
-        transactionID
-      );
+      let payee = await escrowClass.payee(escrowAddress, transactionID);
       this.setState({
         payee: payee,
       });
@@ -166,7 +158,7 @@ class Interact extends React.Component {
     }
 
     try {
-      let feeTimeout = await MultipleArbitrableTransactionWithFee.feeTimeout(
+      let feeTimeout = await escrowClass.feeTimeout(
         escrowAddress,
         transactionID
       );
@@ -178,7 +170,7 @@ class Interact extends React.Component {
     }
 
     try {
-      let timeoutPayment = await MultipleArbitrableTransactionWithFee.timeoutPayment(
+      let timeoutPayment = await escrowClass.timeoutPayment(
         escrowAddress,
         transactionID
       );
@@ -190,7 +182,7 @@ class Interact extends React.Component {
     }
 
     try {
-      let lastInteraction = await MultipleArbitrableTransactionWithFee.lastInteraction(
+      let lastInteraction = await escrowClass.lastInteraction(
         escrowAddress,
         transactionID
       );
@@ -203,7 +195,7 @@ class Interact extends React.Component {
 
     if (this.state.status >= 3) {
       try {
-        let disputeID = await MultipleArbitrableTransactionWithFee.disputeID(
+        let disputeID = await escrowClass.disputeID(
           escrowAddress,
           transactionID
         );
@@ -211,7 +203,7 @@ class Interact extends React.Component {
           disputeID: disputeID,
         });
         try {
-          let ruling = await MultipleArbitrableTransactionWithFee.getRuling(
+          let ruling = await escrowClass.getRuling(
             this.state.arbitrator,
             disputeID,
             escrowAddress
@@ -227,6 +219,15 @@ class Interact extends React.Component {
         this.setState({ disputeID: "ERROR" });
       }
     }
+
+    let payments;
+    if (transactionID !== null && escrowAddress !== null) {
+      payments = await escrowClass.getPayments(transactionID, escrowAddress);
+      console.log(`Payments: ${payments.length}`);
+    } else {
+      payments = [];
+    }
+    this.setState({ payments });
   };
 
   onInput = (e) => {
@@ -250,7 +251,12 @@ class Interact extends React.Component {
   };
 
   submitEvidence = async (evidenceBuffer) => {
-    const { activeAddress, transactionID, escrowAddress } = this.state;
+    const {
+      activeAddress,
+      transactionID,
+      escrowAddress,
+      escrowClass,
+    } = this.state;
 
     const result = await ipfsPublish("name", evidenceBuffer);
 
@@ -265,7 +271,7 @@ class Interact extends React.Component {
       enc.encode(JSON.stringify(evidence))
     );
 
-    MultipleArbitrableTransactionWithFee.submitEvidence(
+    escrowClass.submitEvidence(
       "/ipfs/" + ipfsHashEvidenceObj[0]["hash"],
       transactionID,
       activeAddress,
@@ -279,8 +285,9 @@ class Interact extends React.Component {
 
   handleSubmit = async (e) => {
     e.preventDefault();
+    const { escrowClass } = this.state;
     try {
-      await MultipleArbitrableTransactionWithFee.status(
+      await escrowClass.status(
         this.state.escrowAddress,
         this.state.candidateTransactionID
       );
@@ -289,21 +296,22 @@ class Interact extends React.Component {
       });
     } catch (e) {
       console.error(e);
-      this.setState({ transactionID: "Not found" });
+      this.setState({ transactionID: null });
     }
     this.updateBadges();
   };
 
   onPayButtonClick = async (e) => {
     e.preventDefault();
-    const { value, activeAddress, transactionID, escrowAddress } = this.state;
+    const {
+      value,
+      activeAddress,
+      transactionID,
+      escrowAddress,
+      escrowClass,
+    } = this.state;
     try {
-      await MultipleArbitrableTransactionWithFee.pay(
-        value,
-        transactionID,
-        activeAddress,
-        escrowAddress
-      );
+      await escrowClass.pay(value, transactionID, activeAddress, escrowAddress);
       alert("Payee payed!");
     } catch (e) {
       console.error(e);
@@ -313,9 +321,15 @@ class Interact extends React.Component {
 
   onReimburseButtonClick = async (e) => {
     e.preventDefault();
-    const { value, activeAddress, transactionID, escrowAddress } = this.state;
+    const {
+      value,
+      activeAddress,
+      transactionID,
+      escrowAddress,
+      escrowClass,
+    } = this.state;
     try {
-      await MultipleArbitrableTransactionWithFee.reimburse(
+      await escrowClass.reimburse(
         value,
         transactionID,
         activeAddress,
@@ -335,16 +349,16 @@ class Interact extends React.Component {
       activeAddress,
       transactionID,
       escrowAddress,
+      escrowClass,
     } = this.state;
     try {
-      await MultipleArbitrableTransactionWithFee.payArbitrationFeeBySender(
+      await escrowClass.payArbitrationFeeBySender(
         arbitrationCost,
         transactionID,
         activeAddress,
         escrowAddress
       );
       alert("Dispute created!");
-      // TODO: Check if whether HasToPayFee or raiseDispute was emitted
     } catch (e) {
       console.error(e);
     }
@@ -358,16 +372,16 @@ class Interact extends React.Component {
       activeAddress,
       transactionID,
       escrowAddress,
+      escrowClass,
     } = this.state;
     try {
-      await MultipleArbitrableTransactionWithFee.payArbitrationFeeByReceiver(
+      await escrowClass.payArbitrationFeeByReceiver(
         arbitrationCost,
         transactionID,
         activeAddress,
         escrowAddress
       );
       alert("Dispute created!");
-      // TODO: Check if whether HasToPayFee or raiseDispute was emitted
     } catch (e) {
       console.error(e);
     }
@@ -386,6 +400,8 @@ class Interact extends React.Component {
       arbitrationCost,
       lastInteraction,
       ruling,
+      value,
+      escrowClass,
     } = this.state;
     let arbCostBN = web3.utils.toBN(arbitrationCost);
     let arbCostVerb = `${web3.utils.fromWei(arbCostBN, "ether")} ${
@@ -400,23 +416,30 @@ class Interact extends React.Component {
 
     switch (status) {
       case "0":
-        if (this.isPayer()) {
-          return {
-            title: `If you received the goods, pay the payee.`,
-            body: `If not and you want the funds back, reclaim them. You will have to send ${arbCostVerb} as fees for possible arbitration.`,
-          };
-        } else if (this.isPayee()) {
-          if (Date.now() - lastInteraction >= timeoutPayment) {
+        if (value != 0) {
+          if (this.isPayer()) {
             return {
-              title: `You can reclaim the funds.`,
-              body: `Could not provide the goods? Reimburse the payer.`,
+              title: `If you received the goods, pay the payee.`,
+              body: `If not and you want the funds back, reclaim them. You will have to send ${arbCostVerb} as fees for possible arbitration.`,
             };
-          } else {
-            return {
-              title: `Wait until ${reclaimLimit.toUTCString()} and reclaim the funds.`,
-              body: `Could not provide the goods? Reimburse the payer.`,
-            };
+          } else if (this.isPayee()) {
+            if (Date.now() - lastInteraction >= timeoutPayment) {
+              return {
+                title: `You can reclaim the funds.`,
+                body: `Could not provide the goods? Reimburse the payer.`,
+              };
+            } else {
+              return {
+                title: `Wait until ${reclaimLimit.toUTCString()} and reclaim the funds.`,
+                body: `Could not provide the goods? Reimburse the payer.`,
+              };
+            }
           }
+        } else {
+          return {
+            title: "Transaction resolved",
+            body: "Nothing else to be done",
+          };
         }
         break;
       case "1":
@@ -469,12 +492,8 @@ class Interact extends React.Component {
 
         let intro = `Ruling: ${ruling}`;
         if (
-          (this.isPayer() &&
-            ruling ===
-              MultipleArbitrableTransactionWithFee.SENDER_WINS.toString()) ||
-          (this.isPayee() &&
-            ruling ===
-              MultipleArbitrableTransactionWithFee.RECEIVER_WINS.toString())
+          (this.isPayer() && ruling === escrowClass.SENDER_WINS.toString()) ||
+          (this.isPayee() && ruling === escrowClass.RECEIVER_WINS.toString())
         ) {
           intro = "You won! Funds have been sent to you.";
         } else {
@@ -507,8 +526,10 @@ class Interact extends React.Component {
       disputeID,
       escrowAddress,
       coin,
+      escrowClass,
+      payments,
     } = this.state;
-    let statusVerbose = MultipleArbitrableTransactionWithFee.STATUS[status];
+    let statusVerbose = escrowClass.STATUS[status];
     if (statusVerbose !== undefined) {
       statusVerbose = statusVerbose
         .replace(/([A-Z]+)/g, " $1")
@@ -520,15 +541,21 @@ class Interact extends React.Component {
         parseInt(lastInteraction) * 1000
       ).toUTCString();
     let actionHint = this.suggestedAction() || { title: "", body: "" };
+    const coinVerbose = coin === "rbtc" ? "(wei) RBTC" : coin.toUpperCase();
+
     return (
       <Container className="container-fluid d-flex h-100 flex-column">
         <Card className="h-100 my-4 text-center" style={{ width: "auto" }}>
           <Card.Body>
             <Card.Title>
+              Interact with{" "}
+              {coin == "rbtc" ? "Transaction Escrow" : "Token Escrow"}
+            </Card.Title>
+            <Card.Subtitle>
               {transactionID === null
                 ? `Input Transaction ID to start interacting`
-                : `Interact with Transaction ${transactionID}`}
-            </Card.Title>
+                : `Transaction ${transactionID}`}
+            </Card.Subtitle>
             <Form.Group controlId="transaction-id">
               <Form.Control
                 className="text-center"
@@ -536,6 +563,7 @@ class Interact extends React.Component {
                 rows="1"
                 value={candidateTransactionID}
                 onChange={this.handleChange}
+                // onFocus={() => this.setState({ candidateTransactionID: 0 })}
               />
             </Form.Group>
             <Form.Group>
@@ -563,85 +591,101 @@ class Interact extends React.Component {
                 <p style={{ fontStyle: "italic" }}>What should I do?</p>
                 <h5>{actionHint.title}</h5>
                 <p>{actionHint.body}</p>
+                <h6>Payments</h6>
+                {payments.length > 0 ? (
+                  <ul>
+                    {payments.map((e) => (
+                      <li
+                        key={e.returnValues[0]}
+                      >{`${e.returnValues._party} paid ${e.returnValues._amount} ${coinVerbose}`}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No payments yet</p>
+                )}
 
-                <ButtonGroup className="mt-3" style={{ width: "100%" }}>
-                  {activeAddress === payer.toLowerCase() && status == 0 && (
-                    <Button
-                      className="mr-2"
-                      variant="success"
-                      type="button"
-                      onClick={this.onPayButtonClick}
-                    >
-                      Pay
-                    </Button>
-                  )}
-                  {activeAddress === payee.toLowerCase() && status == 0 && (
-                    <Button
-                      className="mr-2"
-                      variant="warning"
-                      type="button"
-                      onClick={this.onReimburseButtonClick}
-                    >
-                      Reimburse
-                    </Button>
-                  )}
-                  {activeAddress === payer.toLowerCase() && status < 2 && (
-                    <Button
-                      className="mr-2"
-                      variant="danger"
-                      type="button"
-                      onClick={this.onReclaimBySenderFundsButtonClick}
-                    >
-                      Reclaim
-                    </Button>
-                  )}
-                </ButtonGroup>
-                <ButtonGroup className="mt-3" style={{ width: "100%" }}>
-                  {activeAddress === payee.toLowerCase() &&
-                    (status === 0 || status === 2) && (
-                      <Button
-                        className="mr-2"
-                        variant="danger"
-                        type="button"
-                        onClick={this.onReclaimByReceiverFundsButtonClick}
-                      >
-                        Reclaim
-                      </Button>
-                    )}
-                </ButtonGroup>
-                {(status === 1 || status === 2 || status === 3) && (
-                  <InputGroup className="mt-3">
-                    <h6>
-                      You may submit evidence to backup your claim, for
-                      consideration of the jurors.
-                    </h6>
-                    <div className="input-group">
-                      <div className="custom-file">
-                        <input
-                          type="file"
-                          className="custom-file-input"
-                          id="inputGroupFile04"
-                          onInput={this.onInput}
-                        />
-                        <label
-                          className="text-left custom-file-label"
-                          htmlFor="inputGroupFile04"
-                        >
-                          {(fileInput && fileInput.name) ||
-                            "Choose evidence file"}
-                        </label>
-                      </div>
-                      <div className="input-group-append">
-                        <button
-                          className="btn btn-primary"
+                {value != 0 && (
+                  <div id="buttons">
+                    <ButtonGroup className="mt-3" style={{ width: "100%" }}>
+                      {activeAddress === payer.toLowerCase() && status == 0 && (
+                        <Button
+                          className="mr-2"
+                          variant="success"
                           type="button"
-                          onClick={this.onSubmitButtonClick}
+                          onClick={this.onPayButtonClick}
                         >
-                          Submit
-                        </button>
-                      </div>
-                    </div>
-                  </InputGroup>
+                          Pay
+                        </Button>
+                      )}
+                      {activeAddress === payee.toLowerCase() && status == 0 && (
+                        <Button
+                          className="mr-2"
+                          variant="warning"
+                          type="button"
+                          onClick={this.onReimburseButtonClick}
+                        >
+                          Reimburse
+                        </Button>
+                      )}
+                      {activeAddress === payer.toLowerCase() && status < 2 && (
+                        <Button
+                          className="mr-2"
+                          variant="danger"
+                          type="button"
+                          onClick={this.onReclaimBySenderFundsButtonClick}
+                        >
+                          Reclaim
+                        </Button>
+                      )}
+                    </ButtonGroup>
+                    <ButtonGroup className="mt-3" style={{ width: "100%" }}>
+                      {activeAddress === payee.toLowerCase() &&
+                        (status === 0 || status === 2) && (
+                          <Button
+                            className="mr-2"
+                            variant="danger"
+                            type="button"
+                            onClick={this.onReclaimByReceiverFundsButtonClick}
+                          >
+                            Reclaim
+                          </Button>
+                        )}
+                    </ButtonGroup>
+                    {(status === 1 || status === 2 || status === 3) && (
+                      <InputGroup className="mt-3">
+                        <h6>
+                          You may submit evidence to backup your claim, for
+                          consideration of the jurors.
+                        </h6>
+                        <div className="input-group">
+                          <div className="custom-file">
+                            <input
+                              type="file"
+                              className="custom-file-input"
+                              id="inputGroupFile04"
+                              onInput={this.onInput}
+                            />
+                            <label
+                              className="text-left custom-file-label"
+                              htmlFor="inputGroupFile04"
+                            >
+                              {(fileInput && fileInput.name) ||
+                                "Choose evidence file"}
+                            </label>
+                          </div>
+                          <div className="input-group-append">
+                            <button
+                              className="btn btn-primary"
+                              type="button"
+                              onClick={this.onSubmitButtonClick}
+                            >
+                              Submit
+                            </button>
+                          </div>
+                        </div>
+                      </InputGroup>
+                    )}
+                  </div>
                 )}
               </ListGroup.Item>
               <ListGroup.Item>
@@ -684,9 +728,6 @@ class Interact extends React.Component {
           </Card.Body>
         </Card>
         <Evidences
-          // disputeIDCallback={this.disputeIDCallback}
-          // arbitratorCallback={this.arbitratorCallback}
-          // arbitrableCallback={this.arbitrableCallback}
           arbitratorAddress={arbitrator}
           arbitrableAddress={escrowAddress}
           disputeID={disputeID}
