@@ -1,6 +1,8 @@
 # Defiant-Kleros Transaction Escrow UI
 
-- Que no haya que cliquear 2 veces para que se carguen las evidencias.
+- Deployar contrato ERC20 de prueba.
+- Ver cuantos fondos tiene aprovados a nombre del contrato.
+- Aprobar los fondos antes de crear transferencia.
 - Estilar y rebrandear a Defiant.
 - Explicar:
   - Monto de fees.

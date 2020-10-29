@@ -4,16 +4,65 @@ import Form from "react-bootstrap/Form";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 
+import * as ERC20 from "./ethereum/erc20";
+// import ERC20Mock from "./ethereum/ERC20Mock.json";
+
 class NewTransaction extends React.Component {
   constructor(props) {
     super(props);
+    this.tokenAddresses = {
+      erc20: "0xd6d519bcEF3eF45DB9604B72737766Ef7A6eC599",
+    };
     this.state = {
+      activeAddress: this.props.activeAddress,
+      tokenEscrowAddress: this.props.tokenEscrowAddress,
       amount: "",
       // payee: "",
       title: "",
       description: "",
+      coin: "rbtc",
+      allowedAmount: 0,
+      amountToAllow: 0,
+      tokenAddress: null,
     };
+    // window.ERC20 = ERC20Mock;
   }
+
+  async componentDidUpdate(prevProps) {
+    if (this.props.activeAddress !== prevProps.activeAddress) {
+      this.setState({ activeAddress: this.props.activeAddress });
+    }
+    if (this.props.tokenEscrowAddress !== prevProps.tokenEscrowAddress) {
+      this.setState({ tokenEscrowAddress: this.props.tokenEscrowAddress });
+    }
+  }
+
+  updateApprovedAmount = async (coin, tokenAddress) => {
+    const { activeAddress, tokenEscrowAddress } = this.state;
+    let allowedAmount;
+    if (coin === "rbtc") {
+      allowedAmount = 0;
+    } else {
+      allowedAmount = await ERC20.allowance(
+        tokenAddress,
+        activeAddress,
+        tokenEscrowAddress
+      );
+    }
+    this.setState({ allowedAmount });
+  };
+
+  onCoinChange = async (e) => {
+    const coin = e.target.value;
+    let tokenAddress;
+    if (coin === "rbtc") {
+      tokenAddress = null;
+    } else {
+      tokenAddress = this.tokenAddresses.erc20;
+    }
+    this.setState({ coin, tokenAddress });
+    this.updateApprovedAmount(coin, tokenAddress);
+  };
 
   onAmountChange = (e) => {
     this.setState({ amount: e.target.value });
@@ -33,12 +82,51 @@ class NewTransaction extends React.Component {
 
   onDeployButtonClick = async (e) => {
     e.preventDefault();
-    const { amount, payee, title, description } = this.state;
-    await this.props.newTransactionCallback(amount, payee, title, description);
+    const { amount, payee, title, description, tokenAddress } = this.state;
+    await this.props.newTransactionCallback(
+      amount,
+      payee,
+      title,
+      description,
+      tokenAddress
+    );
+  };
+
+  onAmountToApproveChange = (e) => {
+    this.setState({ amountToAllow: e.target.value });
+  };
+
+  onApproveButtonClick = async (e) => {
+    e.preventDefault();
+    const {
+      amountToAllow,
+      coin,
+      tokenEscrowAddress,
+      activeAddress,
+      tokenAddress,
+    } = this.state;
+    if (coin === "rbtc") {
+      console.log("Impossible to approve for RBTC");
+      return;
+    }
+    await ERC20.approve(
+      tokenAddress,
+      tokenEscrowAddress,
+      amountToAllow,
+      activeAddress
+    );
+    this.updateApprovedAmount(coin, tokenAddress);
   };
 
   render() {
-    const { amount, payee, title, description } = this.state;
+    const {
+      amount,
+      payee,
+      title,
+      description,
+      coin,
+      allowedAmount,
+    } = this.state;
 
     return (
       <Container>
@@ -46,13 +134,49 @@ class NewTransaction extends React.Component {
           <Card.Body>
             <Card.Title>New Transaction</Card.Title>
             <Form>
+              <Form.Group controlId="coin">
+                <Form.Control
+                  as="select"
+                  defaultValue="rbtc"
+                  onChange={this.onCoinChange}
+                >
+                  <option value="rbtc">RBTC</option>
+                  <option value="erc20">ERC20</option>
+                </Form.Control>
+              </Form.Group>
+
+              {coin !== "rbtc" && (
+                <div>
+                  <div>{`Allowed: ${allowedAmount} ${coin.toUpperCase()}`}</div>
+                  <Form.Group controlId="approve">
+                    <Form.Control
+                      as="input"
+                      rows="1"
+                      // value={}
+                      onChange={this.onAmountToApproveChange}
+                      placeholder={"Amount to approve"}
+                      label="Amount to approve"
+                    />
+                    <Button
+                      variant="secondary"
+                      type="button"
+                      onClick={this.onApproveButtonClick}
+                      // block
+                    >
+                      Approve
+                    </Button>
+                  </Form.Group>
+                </div>
+              )}
+
               <Form.Group controlId="amount">
                 <Form.Control
                   as="input"
                   rows="1"
                   value={amount}
                   onChange={this.onAmountChange}
-                  placeholder={"Transaction amount (in weis)"}
+                  placeholder={"Transaction amount (in weis for RBTC)"}
+                  label="Value"
                 />
               </Form.Group>
               <Form.Group controlId="payee">
@@ -63,6 +187,7 @@ class NewTransaction extends React.Component {
                   onChange={this.onPayeeChange}
                   // placeholder={this.props.defaultPayee}
                   placeholder="Payee"
+                  label="Payee"
                 />
               </Form.Group>
               <Form.Group controlId="title">
@@ -71,7 +196,8 @@ class NewTransaction extends React.Component {
                   rows="1"
                   value={title}
                   onChange={this.onTitleChange}
-                  placeholder={"Title"}
+                  placeholder="Transaction title"
+                  label="Title"
                 />
               </Form.Group>
               <Form.Group controlId="description">
@@ -81,6 +207,7 @@ class NewTransaction extends React.Component {
                   value={description}
                   onChange={this.onDescriptionChange}
                   placeholder={"Describe The Agreement"}
+                  label="Description"
                 />
               </Form.Group>
               <Button

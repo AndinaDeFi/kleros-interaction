@@ -1,14 +1,11 @@
 import React from "react";
 import Container from "react-bootstrap/Container";
-import Form from "react-bootstrap/Form";
-import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
 import Row from "react-bootstrap/Row";
 import Evidence from "./evidence";
 
 import Archon from "@kleros/archon";
 import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
-import * as Arbitrator from "./ethereum/arbitrator";
 
 class Evidences extends React.Component {
   constructor(props) {
@@ -56,9 +53,9 @@ class Evidences extends React.Component {
     }
     if (
       changed &&
-      this.props.disputeID != null &&
-      this.props.arbitrableAddress != "Unassigned" &&
-      this.props.arbitratorAddress != "Unassigned"
+      this.props.disputeID !== null &&
+      this.props.arbitrableAddress !== "Unassigned" &&
+      this.props.arbitratorAddress !== "Unassigned"
     )
       this.getEvidences();
   }
@@ -112,11 +109,11 @@ class Evidences extends React.Component {
 
     const submitter = evidence.submittedBy;
 
-    if (submitter == payer) {
+    if (submitter === payer) {
       this.setState((state) => ({
         payerEvidence: [...state.payerEvidence, evidence],
       }));
-    } else if (submitter == payee) {
+    } else if (submitter === payee) {
       this.setState((state) => ({
         payeeEvidence: [...state.payeeEvidence, evidence],
       }));

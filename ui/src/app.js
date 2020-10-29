@@ -2,13 +2,16 @@ import React from "react";
 import web3 from "./ethereum/web3";
 import Ipfs from "ipfs-http-client";
 import ipfsPublish from "./ipfs-publish";
-
 import generateMetaevidence from "./ethereum/generate-meta-evidence";
+
 import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
-import MultipleContract from "./ethereum/MultipleArbitrableTransactionWithFee.json";
+import * as MultipleArbitrableTokenTransactionWithFee from "./ethereum/multiple-arbitrable-token-transaction-with-fee";
+
+import TransactionEscrow from "./ethereum/MultipleArbitrableTransactionWithFee.json";
+import TokenTransactionEscrow from "./ethereum/MultipleArbitrableTokenTransactionWithFee.json";
 
 import Container from "react-bootstrap/Container";
-import Jumbotron from "react-bootstrap/Jumbotron";
+// import Jumbotron from "react-bootstrap/Jumbotron";
 import Button from "react-bootstrap/Button";
 import Form from "react-bootstrap/Form";
 import Row from "react-bootstrap/Row";
@@ -23,7 +26,8 @@ class App extends React.Component {
     super(props);
 
     this.state = {
-      multipleArbitrableAddress: "0xc3b5fa1af1bcf1a9925d622e5fafca313089d03e",
+      transacEscrowAddress: "0xc3b5fa1af1bcf1a9925d622e5fafca313089d03e",
+      tokenEscrowAddress: "0x01965a722CB883Dd2516BBFFF21868D641bF2CBD",
       arbitratorAddress: "0xb304fe074073ec2dc4ada34d066d0db968bbecdd",
       activeAddress: "0x0000000000000000000000000000000000000000",
       defaultPayee: "0x3623e33DE3Aa9cc60b300251fbDFA4ac29Fe1CFD",
@@ -41,13 +45,20 @@ class App extends React.Component {
       protocol: "https",
     });
 
-    window.MultArbContract = MultipleContract;
+    window.MultArbContract = TransactionEscrow;
   }
 
-  newTransaction = async (amount, payee, title, description) => {
+  newTransaction = async (
+    amount,
+    payee,
+    title,
+    description,
+    tokenAddress = null
+  ) => {
     const {
       activeAddress,
-      multipleArbitrableAddress,
+      transacEscrowAddress,
+      tokenEscrowAddress,
       timeoutPayment,
     } = this.state;
 
@@ -63,17 +74,31 @@ class App extends React.Component {
       "metaEvidence.json",
       enc.encode(JSON.stringify(metaevidence))
     );
-
-    let result = await MultipleArbitrableTransactionWithFee.createTransaction(
-      activeAddress,
-      amount,
-      multipleArbitrableAddress,
-      timeoutPayment,
-      payee,
-      "/ipfs/" +
-        ipfsHashMetaEvidenceObj[1]["hash"] +
-        ipfsHashMetaEvidenceObj[0]["path"]
-    );
+    let result;
+    if (tokenAddress === null) {
+      result = await MultipleArbitrableTransactionWithFee.createTransaction(
+        activeAddress,
+        amount,
+        transacEscrowAddress,
+        timeoutPayment,
+        payee,
+        "/ipfs/" +
+          ipfsHashMetaEvidenceObj[1]["hash"] +
+          ipfsHashMetaEvidenceObj[0]["path"]
+      );
+    } else {
+      result = await MultipleArbitrableTokenTransactionWithFee.createTransaction(
+        activeAddress,
+        amount,
+        tokenAddress,
+        tokenEscrowAddress,
+        timeoutPayment,
+        payee,
+        "/ipfs/" +
+          ipfsHashMetaEvidenceObj[1]["hash"] +
+          ipfsHashMetaEvidenceObj[0]["path"]
+      );
+    }
     this.setState({
       lastTransactionID:
         result.events.MetaEvidence.returnValues._metaEvidenceID,
@@ -83,25 +108,40 @@ class App extends React.Component {
     );
   };
 
-  load = (contractAddress) =>
-    MultipleArbitrableTransactionWithFee.contractInstance(contractAddress);
+  // load = (contractAddress) =>
+  //   MultipleArbitrableTransactionWithFee.contractInstance(contractAddress);
 
-  onMultArbAddressChange = async (e) => {
+  onTransacEscrowAddressChange = async (e) => {
     const targetMultArbAddress = e.target.value.trim();
     try {
       this.setState({
-        multipleArbitrableAddress: (await MultipleArbitrableTransactionWithFee.contractInstance(
+        transacEscrowAddress: (await MultipleArbitrableTransactionWithFee.contractInstance(
           targetMultArbAddress
         ))._address,
       });
-      console.log(`Mult Arb address: ${targetMultArbAddress}`);
+      console.log(`Transaction Escrow address: ${targetMultArbAddress}`);
     } catch (e) {
       alert("Failing. Deploy new one instead.");
-      this.setState({ multipleArbitrableAddress: "ERROR" });
+      this.setState({ transacEscrowAddress: "ERROR" });
     }
   };
 
-  onDeployMultArbButtonClick = async (e) => {
+  onTokenEscrowAddressChange = async (e) => {
+    const targetMultArbAddress = e.target.value.trim();
+    try {
+      this.setState({
+        tokenEscrowAddress: (await MultipleArbitrableTokenTransactionWithFee.contractInstance(
+          targetMultArbAddress
+        ))._address,
+      });
+      console.log(`Token Escrow address: ${targetMultArbAddress}`);
+    } catch (e) {
+      alert("Failing. Deploy new one instead.");
+      this.setState({ tokenEscrowAddress: "ERROR" });
+    }
+  };
+
+  onDeployTransacEscrowClick = async (e) => {
     e.preventDefault();
     const {
       activeAddress,
@@ -120,13 +160,32 @@ class App extends React.Component {
       feeTimeout
     );
     this.setState({
-      multipleArbitrableAddress: multipleArbitrableInstance._address,
+      transacEscrowAddress: multipleArbitrableInstance._address,
     });
-    console.log(
-      `Mounted. MultipleAribtrableInstace at: ${
-        multipleArbitrableInstance._address
-      }`
+  };
+
+  onDeployTokenEscrowClick = async (e) => {
+    e.preventDefault();
+    const {
+      activeAddress,
+      arbitratorAddress,
+      arbitratorExtraData,
+      feeRecipient,
+      feeRecipientBasisPoint,
+      feeTimeout,
+    } = this.state;
+    const multipleArbitrableInstance = await MultipleArbitrableTokenTransactionWithFee.deploy(
+      activeAddress,
+      arbitratorAddress,
+      arbitratorExtraData,
+      feeRecipient,
+      feeRecipientBasisPoint,
+      feeTimeout
     );
+    console.log(`Deployed at ${multipleArbitrableInstance._address}`);
+    this.setState({
+      tokenEscrowAddress: multipleArbitrableInstance._address,
+    });
   };
 
   async componentDidMount() {
@@ -147,50 +206,82 @@ class App extends React.Component {
 
   render() {
     const {
-      multipleArbitrableAddress,
+      transacEscrowAddress,
+      tokenEscrowAddress,
       lastTransactionID,
       defaultPayee,
       activeAddress,
     } = this.state;
     return (
       <Container>
-        <Row>
+        <Row style={{ marginBottom: "20px" }}>
           <Col>
             <h1 className="text-center my-5"> Defiant Transaction Escrow </h1>{" "}
             <Row>
-              <Card
-                className="h-100 my-4 text-center"
-                style={{ width: "100%" }}
-              >
-                <Card.Body>
-                  <Card.Title>Multiple Arbitrator with Fee</Card.Title>
-                  <p>
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      onClick={this.onDeployMultArbButtonClick}
-                    >
-                      Deploy new contract{" "}
-                    </Button>{" "}
-                  </p>{" "}
-                  <Form.Group controlId="escrow-address">
-                    <Form.Control
-                      className="text-center"
-                      as="input"
-                      rows="1"
-                      value={multipleArbitrableAddress}
-                      onChange={this.onMultArbAddressChange}
-                    />
-                  </Form.Group>
-                  <p>
-                    <Badge
-                      className="m-1"
-                      pill
-                      variant="info"
-                    >{`Deployed at: ${multipleArbitrableAddress}`}</Badge>
-                  </p>
-                </Card.Body>
-              </Card>
+              <Col>
+                <Card className="h-100 my-4 text-center">
+                  <Card.Body>
+                    <Card.Title>Transaction Escrow</Card.Title>
+                    <p>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        onClick={this.onDeployTransacEscrowClick}
+                      >
+                        Deploy new contract{" "}
+                      </Button>{" "}
+                    </p>{" "}
+                    <Form.Group controlId="transac-escrow-address">
+                      <Form.Control
+                        className="text-center"
+                        as="input"
+                        rows="1"
+                        value={transacEscrowAddress}
+                        onChange={this.onTransacEscrowAddressChange}
+                      />
+                    </Form.Group>
+                    <p>
+                      <Badge
+                        className="m-1"
+                        pill
+                        variant="info"
+                      >{`Deployed at: ${transacEscrowAddress}`}</Badge>
+                    </p>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col>
+                <Card className="h-100 my-4 text-center">
+                  <Card.Body>
+                    <Card.Title>Token Escrow</Card.Title>
+                    <p>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        onClick={this.onDeployTokenEscrowClick}
+                      >
+                        Deploy new contract{" "}
+                      </Button>{" "}
+                    </p>{" "}
+                    <Form.Group controlId="etoken-scrow-address">
+                      <Form.Control
+                        className="text-center"
+                        as="input"
+                        rows="1"
+                        value={tokenEscrowAddress}
+                        onChange={this.onTokenEscrowAddressChange}
+                      />
+                    </Form.Group>
+                    <p>
+                      <Badge
+                        className="m-1"
+                        pill
+                        variant="info"
+                      >{`Deployed at: ${tokenEscrowAddress}`}</Badge>
+                    </p>
+                  </Card.Body>
+                </Card>
+              </Col>
             </Row>
           </Col>{" "}
         </Row>{" "}
@@ -199,12 +290,14 @@ class App extends React.Component {
             <NewTransaction
               newTransactionCallback={this.newTransaction}
               defaultPayee={defaultPayee}
+              activeAddress={activeAddress}
+              tokenEscrowAddress={tokenEscrowAddress}
             />{" "}
           </Col>{" "}
           <Col>
             <Interact
               activeAddress={activeAddress}
-              escrowAddress={multipleArbitrableAddress}
+              escrowAddress={transacEscrowAddress}
               transactionID={lastTransactionID}
             />{" "}
           </Col>{" "}
