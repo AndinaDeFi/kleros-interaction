@@ -24,7 +24,9 @@ import Interact from "./interact.js";
 class App extends React.Component {
   constructor(props) {
     super(props);
-
+    this.tokenAddresses = {
+      erc20: "0xd6d519bcEF3eF45DB9604B72737766Ef7A6eC599",
+    };
     this.state = {
       transacEscrowAddress: "0xc3b5fa1af1bcf1a9925d622e5fafca313089d03e",
       tokenEscrowAddress: "0x01965a722CB883Dd2516BBFFF21868D641bF2CBD",
@@ -38,6 +40,7 @@ class App extends React.Component {
       arbitrationFee: 100,
       lastTransactionID: null,
       arbitratorExtraData: web3.utils.utf8ToHex(0),
+      coin: "rbtc",
     };
     this.ipfs = new Ipfs({
       host: "ipfs.kleros.io",
@@ -47,6 +50,10 @@ class App extends React.Component {
 
     window.MultArbContract = TransactionEscrow;
   }
+
+  coinChange = (coin) => {
+    this.setState({ coin });
+  };
 
   newTransaction = async (
     amount,
@@ -211,6 +218,7 @@ class App extends React.Component {
       lastTransactionID,
       defaultPayee,
       activeAddress,
+      coin,
     } = this.state;
     return (
       <Container>
@@ -289,16 +297,21 @@ class App extends React.Component {
           <Col>
             <NewTransaction
               newTransactionCallback={this.newTransaction}
+              coinChangeCallback={this.coinChange}
               defaultPayee={defaultPayee}
               activeAddress={activeAddress}
               tokenEscrowAddress={tokenEscrowAddress}
+              tokenAddresses={this.tokenAddresses}
             />{" "}
           </Col>{" "}
           <Col>
             <Interact
               activeAddress={activeAddress}
-              escrowAddress={transacEscrowAddress}
+              tokenEscrowAddress={tokenEscrowAddress}
+              transacEscrowAddress={transacEscrowAddress}
               transactionID={lastTransactionID}
+              tokenAddresses={this.tokenAddresses}
+              coin={coin}
             />{" "}
           </Col>{" "}
         </Row>{" "}

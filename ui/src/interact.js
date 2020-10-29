@@ -13,6 +13,7 @@ import Card from "react-bootstrap/Card";
 import InputGroup from "react-bootstrap/InputGroup";
 
 import * as MultipleArbitrableTransactionWithFee from "./ethereum/multiple-arbitrable-transaction-with-fee";
+import * as MultipleArbitrableTokenTransactionWithFee from "./ethereum/multiple-arbitrable-token-transaction-with-fee";
 import * as Arbitrator from "./ethereum/arbitrator";
 
 import * as Config from "./config";
@@ -22,7 +23,9 @@ class Interact extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      escrowAddress: this.props.escrowAddress,
+      // tokenEscrowAddress: this.props.tokenEscrowAddress,
+      // transacEscrowAddress: this.props.transacEscrowAddress,
+      escrowAddress: this.props.transacEscrowAddress,
       transactionID: this.props.transactionID,
       candidateTransactionID: "",
       activeAddress: this.props.activeAddress,
@@ -40,11 +43,14 @@ class Interact extends React.Component {
       lastInteraction: 0,
       disputeID: null,
       ruling: null,
+      coin: this.props.coin,
+      tokenAddress: null,
     };
   }
 
   async componentDidUpdate(prevProps) {
-    let changed = false;
+    let changed,
+      changedCoin = false;
     if (this.props.activeAddress !== prevProps.activeAddress) {
       this.setState({ activeAddress: this.props.activeAddress });
       changed = true;
@@ -57,17 +63,42 @@ class Interact extends React.Component {
       this.setState({ transactionID: this.props.transactionID });
       changed = true;
     }
-    if (changed && this.state.transactionID != null) this.updateBadges();
+    if (this.props.coin !== prevProps.coin) {
+      let tokenAddress, escrowAddress;
+      if (this.props.coin === "rbtc") {
+        tokenAddress = null;
+        escrowAddress = this.props.transacEscrowAddress;
+      } else {
+        tokenAddress = this.props.tokenAddresses.erc20;
+        escrowAddress = this.props.tokenEscrowAddress;
+      }
+      this.setState({ coin: this.props.coin, tokenAddress, escrowAddress });
+      changedCoin = true;
+    }
+    if (changedCoin) this.cleanBadges();
+    else if (changed && this.state.transactionID != null) this.updateBadges();
   }
 
+  cleanBadges = () => {
+    this.setState({
+      status: "Unassigned",
+      value: "Unassigned",
+      arbitrator: "Unassigned",
+      arbitratorCost: 0,
+    });
+  };
+
   updateBadges = async () => {
-    const { escrowAddress, transactionID, extraData } = this.state;
+    const { escrowAddress, transactionID, extraData, coin } = this.state;
+    let escrowClass;
+    if (coin === "rbtc") {
+      escrowClass = MultipleArbitrableTransactionWithFee;
+    } else {
+      escrowClass = MultipleArbitrableTokenTransactionWithFee;
+    }
 
     try {
-      let status = await MultipleArbitrableTransactionWithFee.status(
-        escrowAddress,
-        transactionID
-      );
+      let status = await escrowClass.status(escrowAddress, transactionID);
       this.setState({
         status: status,
       });
@@ -76,7 +107,7 @@ class Interact extends React.Component {
     }
 
     try {
-      let arbitrator = await MultipleArbitrableTransactionWithFee.arbitrator(
+      let arbitrator = await escrowClass.arbitrator(
         escrowAddress,
         transactionID
       );
@@ -455,7 +486,7 @@ class Interact extends React.Component {
         };
 
       default:
-        return `Transaction correctly set?`;
+        return { body: "Transaction correctly set?", title: "No status" };
     }
   };
 
@@ -475,6 +506,7 @@ class Interact extends React.Component {
       candidateTransactionID,
       disputeID,
       escrowAddress,
+      coin,
     } = this.state;
     let statusVerbose = MultipleArbitrableTransactionWithFee.STATUS[status];
     if (statusVerbose !== undefined) {
@@ -487,7 +519,7 @@ class Interact extends React.Component {
       lastInteractionVerbose = new Date(
         parseInt(lastInteraction) * 1000
       ).toUTCString();
-    let actionHint = this.suggestedAction();
+    let actionHint = this.suggestedAction() || { title: "", body: "" };
     return (
       <Container className="container-fluid d-flex h-100 flex-column">
         <Card className="h-100 my-4 text-center" style={{ width: "auto" }}>
@@ -533,7 +565,7 @@ class Interact extends React.Component {
                 <p>{actionHint.body}</p>
 
                 <ButtonGroup className="mt-3" style={{ width: "100%" }}>
-                  {activeAddress === payer.toLowerCase() && status === 0 && (
+                  {activeAddress === payer.toLowerCase() && status == 0 && (
                     <Button
                       className="mr-2"
                       variant="success"
@@ -543,7 +575,7 @@ class Interact extends React.Component {
                       Pay
                     </Button>
                   )}
-                  {activeAddress === payee.toLowerCase() && status === 0 && (
+                  {activeAddress === payee.toLowerCase() && status == 0 && (
                     <Button
                       className="mr-2"
                       variant="warning"
@@ -612,7 +644,11 @@ class Interact extends React.Component {
                   </InputGroup>
                 )}
               </ListGroup.Item>
-              <ListGroup.Item>Value in escrow (weis): {value}</ListGroup.Item>
+              <ListGroup.Item>
+                Value in escrow: {value}
+                {coin === "rbtc" ? " (wei) " : " "}
+                {coin.toUpperCase()}
+              </ListGroup.Item>
               <ListGroup.Item>
                 Payer: {payer}
                 <Badge className="m-1" pill variant="success">

@@ -10,9 +10,7 @@ import * as ERC20 from "./ethereum/erc20";
 class NewTransaction extends React.Component {
   constructor(props) {
     super(props);
-    this.tokenAddresses = {
-      erc20: "0xd6d519bcEF3eF45DB9604B72737766Ef7A6eC599",
-    };
+
     this.state = {
       activeAddress: this.props.activeAddress,
       tokenEscrowAddress: this.props.tokenEscrowAddress,
@@ -58,10 +56,11 @@ class NewTransaction extends React.Component {
     if (coin === "rbtc") {
       tokenAddress = null;
     } else {
-      tokenAddress = this.tokenAddresses.erc20;
+      tokenAddress = this.props.tokenAddresses.erc20;
     }
     this.setState({ coin, tokenAddress });
     this.updateApprovedAmount(coin, tokenAddress);
+    this.props.coinChangeCallback(coin);
   };
 
   onAmountChange = (e) => {
