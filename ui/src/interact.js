@@ -49,8 +49,10 @@ class Interact extends React.Component {
   }
 
   async componentDidUpdate(prevProps) {
+    console.log("Component updated");
     let changed,
       changedCoin = false;
+    let newTransactionID = this.props.transactionID;
     if (this.props.activeAddress !== prevProps.activeAddress) {
       this.setState({ activeAddress: this.props.activeAddress });
       changed = true;
@@ -60,9 +62,12 @@ class Interact extends React.Component {
       changed = true;
     }
     if (this.props.transactionID !== prevProps.transactionID) {
-      const tID = this.props.transactionID;
-      this.setState({ transactionID: tID, candidateTransactionID: tID });
+      this.setState({
+        transactionID: newTransactionID,
+        candidateTransactionID: newTransactionID,
+      });
       changed = true;
+      window.transactionID = newTransactionID;
     }
     if (this.props.coin !== prevProps.coin) {
       let tokenAddress, escrowAddress, escrowClass;
@@ -82,22 +87,16 @@ class Interact extends React.Component {
         escrowClass,
       });
       changedCoin = true;
+      window.escrowClass = escrowClass;
+      window.escrowAddress = escrowAddress;
     }
-    if (changedCoin) this.cleanBadges();
-    else if (changed && this.state.transactionID != null) this.updateBadges();
+    if (changed && newTransactionID !== null)
+      this.updateBadges(newTransactionID);
   }
 
-  cleanBadges = () => {
-    this.setState({
-      status: "Unassigned",
-      value: "Unassigned",
-      arbitrator: "Unassigned",
-      arbitratorCost: 0,
-    });
-  };
-
-  updateBadges = async () => {
-    const { escrowAddress, transactionID, extraData, escrowClass } = this.state;
+  updateBadges = async (transactionID) => {
+    const { escrowAddress, extraData, escrowClass } = this.state;
+    console.log(`Updating badges, transactionID: ${transactionID}`);
     try {
       let status = await escrowClass.status(escrowAddress, transactionID);
       this.setState({
@@ -298,7 +297,7 @@ class Interact extends React.Component {
       console.error(e);
       this.setState({ transactionID: null });
     }
-    this.updateBadges();
+    this.updateBadges(this.state.candidateTransactionID);
   };
 
   onPayButtonClick = async (e) => {
@@ -316,7 +315,7 @@ class Interact extends React.Component {
     } catch (e) {
       console.error(e);
     }
-    this.updateBadges();
+    this.updateBadges(transactionID);
   };
 
   onReimburseButtonClick = async (e) => {
@@ -339,7 +338,7 @@ class Interact extends React.Component {
     } catch (e) {
       console.error(e);
     }
-    this.updateBadges();
+    this.updateBadges(transactionID);
   };
 
   onReclaimBySenderFundsButtonClick = async (e) => {
@@ -362,7 +361,7 @@ class Interact extends React.Component {
     } catch (e) {
       console.error(e);
     }
-    this.updateBadges();
+    this.updateBadges(transactionID);
   };
 
   onReclaimByReceiverFundsButtonClick = async (e) => {
@@ -385,7 +384,7 @@ class Interact extends React.Component {
     } catch (e) {
       console.error(e);
     }
-    this.updateBadges();
+    this.updateBadges(transactionID);
   };
 
   isPayee = () => this.state.activeAddress === this.state.payee.toLowerCase();

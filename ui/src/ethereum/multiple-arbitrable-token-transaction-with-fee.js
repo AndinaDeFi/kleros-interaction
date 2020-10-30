@@ -63,14 +63,14 @@ export const status = async (instanceAddress, transactionID) => {
   return status;
 };
 
-export const arbitrator = async (instanceAddress, transactionID) => {
+export const arbitrator = async (instanceAddress) => {
   const arbitrator = await contractInstance(instanceAddress)
     .methods.arbitrator()
     .call();
   return arbitrator;
 };
 
-export const feeTimeout = async (instanceAddress, transactionID) => {
+export const feeTimeout = async (instanceAddress) => {
   const feeTimeout = await contractInstance(instanceAddress)
     .methods.feeTimeout()
     .call();
@@ -219,3 +219,10 @@ export const submitEvidence = (
   contractInstance(instanceAddress)
     .methods.submitEvidence(transactionID, evidence)
     .send({ from: senderAddress });
+
+export const getTransactionIDsByAddress = async (address, instanceAddress) => {
+  let transactions = await contractInstance(instanceAddress)
+    .methods.getTransactionIDsByAddress(address)
+    .call();
+  return transactions;
+};

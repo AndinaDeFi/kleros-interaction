@@ -30,6 +30,8 @@ class App extends React.Component {
     this.state = {
       transacEscrowAddress: "0xc3b5fa1af1bcf1a9925d622e5fafca313089d03e",
       tokenEscrowAddress: "0x01965a722CB883Dd2516BBFFF21868D641bF2CBD",
+      transacEscrowTransactions: [],
+      tokenEscrowTransactions: [],
       arbitratorAddress: "0xb304fe074073ec2dc4ada34d066d0db968bbecdd",
       activeAddress: "0x0000000000000000000000000000000000000000",
       defaultPayee: "0x3623e33DE3Aa9cc60b300251fbDFA4ac29Fe1CFD",
@@ -115,8 +117,23 @@ class App extends React.Component {
     );
   };
 
-  // load = (contractAddress) =>
-  //   MultipleArbitrableTransactionWithFee.contractInstance(contractAddress);
+  getUserTransEscrowTransactions = async () => {
+    const { activeAddress, transacEscrowAddress } = this.state;
+    let transactions = await MultipleArbitrableTransactionWithFee.getTransactionIDsByAddress(
+      activeAddress,
+      transacEscrowAddress
+    );
+    this.setState({ transacEscrowTransactions: transactions });
+  };
+
+  getUserTokenEscrowTransactions = async () => {
+    const { activeAddress, tokenEscrowAddress } = this.state;
+    let transactions = await MultipleArbitrableTokenTransactionWithFee.getTransactionIDsByAddress(
+      activeAddress,
+      tokenEscrowAddress
+    );
+    this.setState({ tokenEscrowTransactions: transactions });
+  };
 
   onTransacEscrowAddressChange = async (e) => {
     const targetMultArbAddress = e.target.value.trim();
@@ -127,6 +144,7 @@ class App extends React.Component {
         ))._address,
       });
       console.log(`Transaction Escrow address: ${targetMultArbAddress}`);
+      this.getUserTransEscrowTransactions();
     } catch (e) {
       alert("Failing. Deploy new one instead.");
       this.setState({ transacEscrowAddress: "ERROR" });
@@ -169,6 +187,8 @@ class App extends React.Component {
     this.setState({
       transacEscrowAddress: multipleArbitrableInstance._address,
     });
+    this.getUserTransEscrowTransactions();
+    this.getUserTokenEscrowTransactions();
   };
 
   onDeployTokenEscrowClick = async (e) => {
@@ -193,6 +213,7 @@ class App extends React.Component {
     this.setState({
       tokenEscrowAddress: multipleArbitrableInstance._address,
     });
+    this.getUserTokenEscrowTransactions();
   };
 
   async componentDidMount() {
@@ -209,12 +230,25 @@ class App extends React.Component {
         activeAddress: accounts[0],
       });
     });
+
+    this.getUserTransEscrowTransactions();
+    this.getUserTokenEscrowTransactions();
   }
+
+  setActiveTransactionID = (e) => {
+    e.preventDefault();
+    let coin;
+    if (e.target.attributes.escrow_type.value === "transaction") coin = "rbtc";
+    else coin = "erc20";
+    this.setState({ lastTransactionID: e.target.value, coin });
+  };
 
   render() {
     const {
       transacEscrowAddress,
+      transacEscrowTransactions,
       tokenEscrowAddress,
+      tokenEscrowTransactions,
       lastTransactionID,
       defaultPayee,
       activeAddress,
@@ -233,7 +267,7 @@ class App extends React.Component {
                     <p>
                       <Button
                         type="submit"
-                        variant="primary"
+                        variant="outline-dark"
                         onClick={this.onDeployTransacEscrowClick}
                       >
                         Deploy new contract{" "}
@@ -255,6 +289,29 @@ class App extends React.Component {
                         variant="info"
                       >{`Deployed at: ${transacEscrowAddress}`}</Badge>
                     </p>
+                    <Button
+                      type="submit"
+                      variant="outline-success"
+                      onClick={this.getUserTransEscrowTransactions}
+                    >
+                      Find my transactions
+                    </Button>
+                    {transacEscrowTransactions.length > 0 && (
+                      <div style={{ marginTop: "1.5rem" }}>
+                        <p>Your transactions with this escrow are:</p>
+                        {transacEscrowTransactions.map((transac) => (
+                          <Button
+                            className="mx-2"
+                            onClick={this.setActiveTransactionID}
+                            value={transac.toString()}
+                            escrow_type="transaction"
+                            variant="success"
+                          >
+                            {transac.toString()}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </Card.Body>
                 </Card>
               </Col>
@@ -265,7 +322,7 @@ class App extends React.Component {
                     <p>
                       <Button
                         type="submit"
-                        variant="primary"
+                        variant="outline-dark"
                         onClick={this.onDeployTokenEscrowClick}
                       >
                         Deploy new contract{" "}
@@ -287,6 +344,29 @@ class App extends React.Component {
                         variant="info"
                       >{`Deployed at: ${tokenEscrowAddress}`}</Badge>
                     </p>
+                    <Button
+                      type="submit"
+                      variant="outline-success"
+                      onClick={this.getUserTokenEscrowTransactions}
+                    >
+                      Find my transactions
+                    </Button>
+                    {tokenEscrowTransactions.length > 0 && (
+                      <div style={{ marginTop: "1.5rem" }}>
+                        <p>Your transactions with this escrow are:</p>
+                        {tokenEscrowTransactions.map((transac) => (
+                          <Button
+                            className="mx-2"
+                            onClick={this.setActiveTransactionID}
+                            value={transac.toString()}
+                            escrow_type="token"
+                            variant="success"
+                          >
+                            {transac.toString()}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </Card.Body>
                 </Card>
               </Col>

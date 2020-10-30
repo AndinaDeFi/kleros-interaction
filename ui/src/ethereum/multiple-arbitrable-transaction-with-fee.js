@@ -205,3 +205,10 @@ export const submitEvidence = (
   contractInstance(instanceAddress)
     .methods.submitEvidence(transactionID, evidence)
     .send({ from: senderAddress });
+
+export const getTransactionIDsByAddress = async (address, instanceAddress) => {
+  let transactions = await contractInstance(instanceAddress)
+    .methods.getTransactionIDsByAddress(address)
+    .call();
+  return transactions;
+};
