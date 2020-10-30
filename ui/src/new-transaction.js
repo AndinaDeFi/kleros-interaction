@@ -160,17 +160,14 @@ class NewTransaction extends React.Component {
                       <Form.Control
                         as="input"
                         rows="1"
-                        // value={}
                         onChange={this.onAmountToApproveChange}
                         placeholder={"Amount to approve"}
                         label="Amount to approve"
-                        // style
                       />
                       <Button
                         variant="outline-primary"
                         type="button"
                         onClick={this.onApproveButtonClick}
-                        // block
                       >
                         Approve
                       </Button>
