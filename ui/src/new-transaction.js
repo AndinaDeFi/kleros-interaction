@@ -145,33 +145,38 @@ class NewTransaction extends React.Component {
               </Form.Group>
 
               {coin !== "rbtc" && (
-                <div>
-                  <p
+                <Card className="text-center my-4">
+                  <Card.Title
                     style={{ marginBottom: "0", fontStyle: "italic" }}
-                  >{`${allowedAmount} ${coin.toUpperCase()} allowed. Need to approve more?`}</p>
-                  <Form.Group
-                    controlId="approve"
-                    style={{ display: "flex", justifyContent: "center" }}
                   >
-                    <Form.Control
-                      as="input"
-                      rows="1"
-                      // value={}
-                      onChange={this.onAmountToApproveChange}
-                      placeholder={"Amount to approve"}
-                      label="Amount to approve"
-                      // style
-                    />
-                    <Button
-                      variant="outline-primary"
-                      type="button"
-                      onClick={this.onApproveButtonClick}
-                      // block
+                    {`${allowedAmount} ${coin.toUpperCase()} approved to transfer.`}
+                  </Card.Title>
+                  <Card.Subtitle>Need to approve more?</Card.Subtitle>
+                  <Card.Body>
+                    <Form.Group
+                      controlId="approve"
+                      style={{ display: "flex", justifyContent: "center" }}
                     >
-                      Approve
-                    </Button>
-                  </Form.Group>
-                </div>
+                      <Form.Control
+                        as="input"
+                        rows="1"
+                        // value={}
+                        onChange={this.onAmountToApproveChange}
+                        placeholder={"Amount to approve"}
+                        label="Amount to approve"
+                        // style
+                      />
+                      <Button
+                        variant="outline-primary"
+                        type="button"
+                        onClick={this.onApproveButtonClick}
+                        // block
+                      >
+                        Approve
+                      </Button>
+                    </Form.Group>
+                  </Card.Body>
+                </Card>
               )}
 
               <Form.Group controlId="amount">
